@@ -1,0 +1,337 @@
+'++LotusScript Development Environment:2:5:(Options):0:74
+%REM
+	Library com.pitagora.data.notes
+	Created Jul 14, 2010 by Gernot Hummer/Pitagora
+	Description: Comments for Library
+%END REM
+Option Public
+Option Declare
+Use "com.pitagora.data"
+Use "com.pitagora.validation"
+
+'++LotusScript Development Environment:2:5:(Forward):0:1
+Declare Class NotesConnection As DataConnection
+
+'++LotusScript Development Environment:2:5:(Declarations):0:10
+
+%REM
+	Class NotesConnection
+	Description: Comments for Class
+%END REM
+Class NotesConnection As DataConnection
+	Private db As NotesDatabase
+	Private dbServer As String
+	Private dbFilePath As String
+	Private updateView As NotesView
+	Private sourceCol As NotesDocumentCollection
+
+	%REM
+		Sub New
+		Description: Comments for Sub
+	%END REM
+	Public Sub New(sourceName As String)
+		
+	End Sub
+	
+	%REM
+		Sub init
+		Description: Comments for Sub
+	%END REM
+	Public Sub initialize(serverName As String, dbFilePath As String)
+		Me.dbServer = serverName
+		Me.dbFilePath = dbFilePath
+		Me.init = True
+	End Sub
+	
+	%REM
+		Sub loadData
+		@param1 As Variant, ViewName
+		@param2 As Variant, optional Key, specify Nothing if no key is wanted
+		@param3 As Variant, Boolean whether an exact match is required.
+		@param4 unused
+		@param5 unused
+	%END REM
+	Public Sub loadData(param1 As Variant, param2 As Variant, param3 As Variant, param4 As Variant, param5 As Variant)
+		Dim view As NotesView
+		Dim eCol As NotesViewEntryCollection
+		Dim eEntry As NotesViewEntry
+		Dim doc As NotesDocument
+		
+		If Not Me.db Is Nothing Then
+			Set view = Me.db.GetView(param1)
+			If Not param2 Is Nothing Then
+				Set Me.sourceCol = view.GetAllDocumentsByKey(param2, param3)
+			Else
+				Set Me.sourceCol = view.GetAllDocumentsByKey(SPOOFKEY)
+				Set eCol = view.AllEntries
+				Set eEntry = eCol.GetFirstEntry()
+				While Not eEntry Is Nothing
+					If eEntry.IsDocument Then
+						Call Me.sourceCol.AddDocument(eEntry.Document())
+					End If
+					Set eEntry = eCol.GetNextEntry(eEntry)
+				Wend
+			End If
+		End If
+	End Sub
+	
+	%REM
+		Function getFirstDocument
+		Description: Comments for Function
+	%END REM
+	Public Function getFirstDocument() As NotesDocument
+		If Not Me.sourceCol Is Nothing Then
+			If Me.sourceCol.Count > 0 Then
+				Set Me.getFirstDocument = Me.sourceCol.GetFirstDocument()
+			End If
+		End If
+	End Function
+	
+	%REM
+		Function getNextDocument
+		Description: Comments for Function
+	%END REM
+	Public Function getNextDocument(doc As NotesDocument) As NotesDocument
+		If Not Me.sourceCol Is Nothing And Not doc Is Nothing Then
+			Set Me.getNextDocument = Me.sourceCol.GetNextDocument(doc)
+		End If
+	End Function
+	
+	%REM
+		Function buildDataRecord
+		Description: Comments for Function
+	%END REM
+	Private Function buildDataRecord(doc As NotesDocument) As DataRecord
+		Dim itemConfig As DataItemConfig
+		Dim item As BaseClass
+		Dim bError As BaseError
+		
+		If Not Me.config Is Nothing Then
+			Set Me.buildDataRecord = New DataRecord(Me.config)
+
+			ForAll itemName In Me.config.getRecordConfig().keySet()
+				Set itemConfig = Me.config.getItemConfig(CStr(itemName))
+				
+				ForAll itemValue In doc.GetItemValue(itemName)				
+					Select Case itemConfig.getItemType()
+					Case ITEMTYPE_STRING
+						Set item = New BaseString(CStr(itemValue))
+					Case ITEMTYPE_INTEGER
+						Set item = New BaseInteger(CInt(itemValue))
+					Case ITEMTYPE_LONG
+						Set item = New BaseSingle(CLng(itemValue))
+					Case ITEMTYPE_SINGLE
+						Set item = New BaseSingle(CLng(itemValue))
+					Case ITEMTYPE_DOUBLE
+						Set item = New BaseDouble(CDbl(itemValue))
+					Case ITEMTYPE_CURRENCY
+						Set item = New BaseCurrency(CCur(itemValue))
+					Case ITEMTYPE_BOOLEAN
+						Set item = New BaseBoolean(CBool(itemValue))
+					Case Else
+						Set item = New BaseString(CStr(itemValue))
+				End Select
+					
+					Call Me.buildDataRecord.addValue(CStr(itemName), item)
+				End ForAll
+			End ForAll
+		Else
+			Set bError = New BaseError(ERROR_TITLE, ERROR_NOCONFIG)
+			Call Me.getErrorCollection().addError(bError)
+		End If
+		Exit Function
+		
+ERROR_HANDLER:
+		Set bError = New BaseError(ERROR_TITLE, ERROR_DATACONVERSION & Error)
+		Call Me.getErrorCollection().addError(bError)
+		Exit Function
+	End Function
+	
+	%REM
+		Sub openConnection
+		Description: Comments for Sub
+	%END REM
+	%REM
+		Function openConnection
+		Description: Comments for Function
+	%END REM
+	Public Function openConnection() As Boolean
+		Dim session As New NotesSession()
+		Set Me.db = session.GetDatabase(Me.dbServer, Me.dbFilePath)
+		If Not Me.db Is Nothing Then
+			Me.openConnection = True
+			Me.opn = True
+		Else
+			Me.openConnection = False
+			Me.opn = False
+		End If
+	End Function
+	
+	%REM
+		Function closeConnection
+		Description: Comments for Function
+	%END REM
+	Public Function closeConnection() As Boolean
+		Set Me.db = Nothing
+		Me.closeConnection = True
+	End Function
+	
+	%REM
+		Sub setUpdateViewName
+		Description: Comments for Sub
+	%END REM
+	Public Sub setUpdateViewName(viewName As String)
+		If Me.opn Then
+			Set Me.updateView = Me.db.GetView(viewName)
+		End If
+	End Sub
+	
+	%REM
+		Sub commit
+		Description: Comments for Sub
+	%END REM
+	Public Function commit(record As DataRecord) As Boolean
+		On Error GoTo ERROR_HANDLER
+		Dim bError As BaseError
+		
+		If Me.opn Then
+			Dim doc As NotesDocument
+			Dim itemConfig As DataItemConfig
+			Dim item As NotesItem
+			Dim isNewDoc As Boolean
+			Dim i As Integer
+			
+			If Not Me.updateView Is Nothing And record.hasPrimaryKey() Then
+				Set doc = Me.updateView.GetDocumentByKey(record.getItemValue(record.getPrimaryKeyItemName()))
+			End If
+			
+			If doc Is Nothing Then
+				Set doc = New NotesDocument(Me.db)
+				isNewDoc = True
+			Else
+				isNewDoc = False
+			End If
+			
+			'Execute item values
+			ForAll itemName In record.getItemNames().keySet()				
+				Set itemConfig = record.getConfig().getItemConfig(CStr(itemName))
+				If isNewDoc Or Not itemConfig.hasSpecialType(SPECIALTYPE_INITIAL) Then
+					Call doc.ReplaceItemValue(itemName, record.getItemValue(CStr(itemName)))
+					Set item = doc.GetFirstItem(itemName)
+					
+					ForAll specialType In itemConfig.getSpecialTypes().keySet()
+						Select Case CStr(specialType)
+						Case SPECIALTYPE_AUTHOR
+							item.IsAuthors = True
+						Case SPECIALTYPE_READER
+							item.IsReaders = True
+						Case SPECIALTYPE_NAME
+							item.IsNames = True				
+					End Select
+					End ForAll
+				End If
+			End ForAll 
+			
+			'Execute computation
+			Dim result As Variant
+			ForAll computation In record.getConfig().getComputationConfig().entrySet()
+				If computation.hasFormula() Then
+					result = Evaluate(computation.getFormula(), doc)
+					Call doc.ReplaceItemValue(computation.getItemName(), result)
+				End If
+			End ForAll
+			
+			'Execute validation
+			Dim validator As New Validator()
+			Set item = doc.ReplaceItemValue("$Validation", "")
+			ForAll validation In record.getConfig().getValidationConfig().toArray()
+				Call item.AppendToTextList(validation.toString())				
+			End ForAll
+			Call validator.validate(doc)
+			Stop
+			If validator.getProblemCount() = 0 Then
+				Call doc.Save(True, False, True)
+				Me.commit = True
+			Else
+				ForAll problem In  validator.getProblems().entrySet()
+					Set bError = New BaseError(ERROR_TITLE, ERROR_COMMIT & " Validation - " & problem.toString())
+					Call Me.getErrorCollection().addError(bError)
+				End ForAll
+				Me.commit = False
+			End If
+		Else
+			Set bError = New BaseError(ERROR_TITLE, ERROR_COMMIT & "Database is not open.")
+			Call Me.getErrorCollection().addError(bError)
+			Me.commit = False
+			Exit Function
+		End If
+		Exit Function
+		
+ERROR_HANDLER:
+		Set bError = New BaseError(ERROR_TITLE, ERROR_COMMIT & Error)
+		Call Me.getErrorCollection().addError(bError)
+		Me.commit = False
+		Exit Function
+	End Function
+	
+	%REM
+		Function commitDocument
+		Description: Comments for Function
+	%END REM
+	Public Function createDocument(doc As NotesDocument) As NotesDocument
+		Set Me.createDocument = Me.db.CreateDocument()
+		If Not doc Is Nothing Then
+			Call doc.CopyAllItems(Me.createDocument, True)
+		End If
+	End Function
+	
+	%REM
+		Function commitDocument
+		Description: Comments for Function
+	%END REM
+	Public Function commitDocument(doc As NotesDocument) As Boolean
+		Dim targetDoc As NotesDocument
+		Me.commitDocument = False
+
+		If Not doc.ParentDatabase.ReplicaID = Me.db.ReplicaID Then
+			Set targetDoc = Me.db.CreateDocument()
+			Call doc.CopyAllitems(targetDoc)
+		Else
+			Set targetDoc = doc
+		End If
+		
+		Call targetDoc.Save(True, False, True)
+		Me.commitDocument = True
+	End Function
+	
+	%REM
+		Function removeDocument
+		Description: Comments for Function
+	%END REM
+	Public Function removeDocument(doc As NotesDocument, bool As Boolean)
+		Call doc.Remove(bool)
+	End Function
+	
+	%REM
+		Function isOpen
+		Description: Comments for Function
+	%END REM
+	Public Function isOpen() As Boolean
+		If Me.db Is Nothing Then 
+			Me.isOpen = False
+			Exit Function
+		End If
+		
+		Me.isOpen = Me.db.IsOpen()
+	End Function
+	
+	%REM
+		Function getView
+		Description: Comments for Function
+	%END REM
+	Public Function getView(viewName As String)
+		If Me.isOpen() Then
+			Set Me.getView = Me.db.GetView(viewName)
+		End If
+	End Function
+End Class

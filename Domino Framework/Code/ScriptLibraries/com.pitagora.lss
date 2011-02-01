@@ -1,0 +1,595 @@
+'++LotusScript Development Environment:2:5:(Options):0:74
+%REM
+	Library com.pitagora
+	Created May 12, 2010 by Gernot Hummer/Pitagora
+	
+	THIS LIBRARY IS PROVIDED ON AN AS IS BASIS. THE CREATOR OF THIS
+	LIBRARY CANNOT BE HELD RESPONSIBLE FOR ANY DAMAGE THAT MAY RESULT
+	IN THE USE OR MISUSE OF THIS LIBRARY.
+	
+	(c) PITAGORA INFORMATIONSMANAGEMENT GMBH, 2010
+	ALL RIGHTS RESERVED. UNAUTHORIZED USE AND/OR COPYING IS PROHIBITED
+	
+	IF YOU WANT TO LICENSE THIS LIBRARY FOR USE IN YOUR OWN PROJECT
+	PLEASE CONTACT THE CREATOR:
+	
+	PITAGORA INFORMATIONSMANAGEMENT GMBH,
+	OLYMPIASTRASSE 17
+	A-6020 INNSBRUCK
+	PHONE: 0043 512 586 765
+	FAX:   0043 512 586 765 - 33
+	MAIL:  office@pitagora.at
+%END REM
+Option Public
+Option Declare
+
+'Error constants
+
+'++LotusScript Development Environment:2:5:(Forward):0:1
+Declare Class BaseClass
+Declare Class BaseString As BaseClass
+Declare Class BaseInteger As BaseClass
+Declare Class BaseError
+Declare Class BaseErrorCollection
+Declare Class BaseSingle As BaseClass
+Declare Class BaseDouble As BaseClass
+Declare Class BaseBoolean As BaseClass
+Declare Class BaseByte As BaseClass
+Declare Class BaseCurrency As BaseClass
+Declare Function Client_raiseError(message As String) As Integer
+
+'++LotusScript Development Environment:2:5:(Declarations):0:10
+Const ERROR_TITLE = "Problem"
+Const ERROR_SERVER_CONNECTION = "1|Server could not be found."
+Const ERROR_CREATE_VIEW = "2|The needed logging view could not be created in logging database."
+Const ERROR_CREATE_DOC = "3|Could not create a new logging document in the logging database."
+Const ERROR_SYSTEM_CMD = "4|The system Command To provide the basic structure file did Not Execute correctly."
+Const ERROR_SYSTEM_FILEACCESS = "5|The necessary file could not be written."
+Const ERROR_ACCESS_VIOLIATION = "6|You are not allowed to access this server or database."
+Const ERROR_TYPE_MISMATCH = "7|Something went wrong deep down in your application. Please contact your system developer."
+Const ERROR_GENERIC_MESSAGE = "8|I was not able to determine what went wrong, yet something did. Please contact your system developer."
+Const ERROR_NO_TARGETVIEW = "9|Target view could not be found."
+Const ERROR_NO_TARGETDB = "10|Target database could not be found."
+Const ERROR_OBJECT_COMPARISON = "11|Could not compare objects"
+Const ERROR_OBJECT_REMOVE = "12|Could not remove object"
+Const ERROR_OBJECT_GET = "13|Could not get requested object"
+Const ERROR_ARRAY_CONVERSION = "14|Could not convert ArrayList to native array"
+Const ERROR_HASHMAP_KEYSET = "15|Could not convert KeySet to native array"
+Const ERROR_MAIL_SEND = "16|Could not send e-mail"
+Const ERROR_SHELL_COMMAND = "17|Could not execute command on shell"
+Const ERROR_SYSTEM_FILE = "18|The file could not be accessed."
+Const ERROR_FILE_LASTMODIFIED = "19|Could not read 'last accessed' attribute of file"
+Const ERROR_MSWORD_PDF = "20|Could not complete conversion of MS Word document to PDF File."
+
+
+%REM
+	Class BaseClass
+	Description: Comments for Class
+%END REM
+Class BaseClass
+	Private objUNID As String
+	Private errors As BaseErrorCollection
+	
+	%REM
+		Sub New
+		Description: Constructor
+	%END REM
+	Public Sub New
+		On Error GoTo ERROR_HANDLER
+		Set Me.errors = New BaseErrorCollection()
+		
+		'Generate a unique object ID
+		Dim eval As Variant
+		eval = Evaluate("@Unique")
+		Me.objUNID = CStr(eval(0))
+		
+		Exit Sub
+		
+ERROR_HANDLER:
+		Dim bError As New BaseError(ERROR_TITLE, CStr(Err) & "|" & Error)
+		Call Me.errors.addError(bError)
+		Call Client_raiseError(bError.getErrorDesc)
+		Exit Sub
+	End Sub
+	
+	%REM
+		Function getObjectUNID
+		Description: The ObjectUNID is used to determine, wether objects are equal.
+		@return the unique object id for this object as <code>String</code>
+	%END REM
+	Public Function getObjectUNID As String
+		Me.getObjectUNID = Me.objUNID
+	End Function
+	
+	%REM
+		Function equals
+		@return True if this objects ObjectUNID and the handed in objects ObjectUNID are the same.
+	%END REM
+	Public Function equals(obj As Variant) As Boolean
+		On Error GoTo ERROR_HANDLER
+		Me.equals = False
+		
+		If obj.getObjectUNID = Me.getObjectUNID() Then
+			Me.equals = True
+		Else
+			If TypeName(obj) =  TypeName(Me) Then
+				If obj.toString() = Me.toString() Then
+					Me.equals = True
+				End If
+			End If
+		End If
+		Exit Function
+		
+ERROR_HANDLER:
+		Dim bError As New BaseError(CStr(Err) & "|" & Error, ERROR_TITLE)
+		Call Me.errors.addError(bError)
+		Call Client_raiseError(bError.getErrorDesc)
+		Exit Function
+	End Function
+	
+	%REM
+		Function toString
+		@return a <code>String</code> representation of the object.
+	%END REM
+	Public Function toString() As String
+		Me.toString = Me.objUNID
+	End Function
+	
+	%REM
+		Function getClass
+		@return The name of the underlying class for the object as <code>String</code>
+	%END REM
+	Public Function getClass() As String
+		Me.getClass() = TypeName(Me)
+	End Function
+	
+	%REM
+		Function hasError
+		@return Boolean, true if an error was added to the error collection
+	%END REM
+	Public Function hasError() As Boolean
+		Me.hasError = Me.errors.hasError()
+	End Function
+	
+	%REM
+		Function getErrorCollection
+		@return A <code>BaseErrorCollection</code> containing all errors that occured within this class.
+	%END REM
+	Public Function getErrorCollection() As BaseErrorCollection
+		Set Me.getErrorCollection = Me.errors
+	End Function
+End Class
+%REM
+	Class BaseString
+	Description: Comments for Class
+%END REM
+Class BaseString As BaseClass
+	Private content As String
+	
+	%REM
+		Sub New
+		Description: Comments for Sub
+	%END REM
+	Public Sub New(content As String)
+		Me.content = content
+	End Sub
+	
+	%REM
+		Sub setContent
+		Description: Comments for Sub
+	%END REM
+	Public Sub setContent(content As String)
+		Me.content = content
+	End Sub
+	
+	%REM
+		Function getContent
+		Description: Comments for Function
+	%END REM
+	Public Function getContent() As String
+		Me.getContent = Me.content
+	End Function
+	
+	%REM
+		Function toString
+		Description: Comments for Function
+	%END REM
+	Public Function toString() As String
+		Me.toString = Me.content
+	End Function
+End Class
+%REM
+	Class BaseInteger
+	Description: Comments for Class
+%END REM
+Class BaseInteger As BaseClass
+	Private content As Integer
+	
+	%REM
+		Sub New
+		Description: Constructor
+		@param The integer value as <code>Integer</code>
+	%END REM
+	Public Sub New(i As Integer)
+		Me.content = i
+	End Sub
+	
+	%REM
+		Sub setContent
+		@param i - The <code>Integer</code> value to set the content to.
+	%END REM
+	Public Sub setContent(i As Integer)
+		Me.content = i
+	End Sub
+	
+	%REM
+		Function getContent
+		@return the current <code>Integer</code> value.
+	%END REM
+	Public Function getContent() As Integer
+		Me.getContent = Me.content
+	End Function
+	
+	%REM
+		Function toString
+		@return The current content as <code>String</code>
+	%END REM
+	Public Function toString() As String
+		Me.toString = CStr(Me.content)
+	End Function
+End Class
+%REM
+	Class BaseErrorState
+	Description: Comments for Class
+%END REM
+Class BaseError
+	Private errorNum As Integer
+	Private errorTitle As String
+	Private errorDesc As String
+	
+	%REM
+		Sub New
+		Description: Comments for Sub
+	%END REM
+	Public Sub New(title As String, desc As String)
+		Me.errorNum = CInt(StrToken(desc, "|", 1))
+		Me.errorTitle = title
+		Me.errorDesc = StrToken(desc, "|", 2)
+	End Sub
+	
+	%REM
+		Function getErrorNum
+		Description: Comments for Function
+	%END REM
+	Public Function getErrorNum() As Integer
+		Me.getErrorNum = Me.errorNum
+	End Function
+	
+	%REM
+		Function getErrorTitle
+		Description: Comments for Function
+	%END REM
+	Public Function getErrorTitle() As String
+		Me.getErrorTitle = Me.errorTitle
+	End Function
+	
+	Public Function getErrorDesc() As String
+		Me.getErrorDesc = Me.errorDesc
+	End Function
+End Class
+
+%REM
+	Class BaseErrorCollection
+	Description: Comments for Class
+%END REM
+Class BaseErrorCollection
+	Private errorList List As BaseError
+	Private errorCount As Integer
+	
+	%REM
+		Sub New
+		Description: Constructor
+	%END REM
+	Public Sub New
+		Me.errorCount = 0
+	End Sub
+	
+	%REM
+		Sub addError
+		@param bError As <code>BaseError</code> - The error to add to the collection
+	%END REM
+	Public Sub addError(bError As BaseError)
+		Set Me.errorList(Me.errorCount) = bError
+		Me.errorCount = Me.errorCount + 1
+	End Sub
+	
+	%REM
+		Function hasError
+		@return Boolean, true if an error was added to the collection.
+	%END REM
+	Public Function hasError() As Boolean
+		If Me.errorCount > 0 Then
+			Me.hasError = True
+		Else
+			Me.hasError = False
+		End If
+	End Function
+	
+	%REM
+		Function getCount
+		@return Integer, the current count of Errors in this collection.
+	%END REM
+	Public Function getCount() As Integer
+		Me.getCount = Me.errorCount
+	End Function
+	
+	%REM
+		Function getNthError
+		@return the specific error at position <code>i</code> in the error collection.
+	%END REM
+	Public Function getNthError(i As Integer) As BaseError
+		If Me.errorCount > 0 Then
+			If i>=0 And i < Me.errorCount Then
+				Set Me.getNthError = Me.errorList(i)
+			End If
+		End If
+	End Function	
+	
+	%REM
+		Function toArray
+		Description: Comments for Function
+	%END REM
+	Public Function toArray() As Variant
+		Me.toArray = Me.errorList
+	End Function
+	
+	%REM
+		Sub clear
+		Description: Comments for Sub
+	%END REM
+	Public Sub clear()
+		Erase Me.errorList
+	End Sub
+End Class
+%REM
+	Class BaseSingle
+	Description: Comments for Class
+%END REM
+Class BaseSingle As BaseClass
+	Private content As Single
+	
+	%REM
+		Sub New
+		Description: Constructor
+		@param The single value as <code>Single</code>
+	%END REM
+	Public Sub New(s As Single)
+		Me.content = s
+	End Sub
+	
+	%REM
+		Sub setContent
+		@param i - The <code>Single</code> value to set the content to.
+	%END REM
+	Public Sub setContent(s As Single)
+		Me.content = s
+	End Sub
+	
+	%REM
+		Function getContent
+		@return the current <code>Single</code> value.
+	%END REM
+	Public Function getContent() As Single
+		Me.getContent = Me.content
+	End Function
+	
+	%REM
+		Function toString
+		@return The current content as <code>String</code>
+	%END REM
+	Public Function toString() As String
+		Me.toString = CStr(Me.content)
+	End Function
+End Class
+%REM
+	Class BaseDouble
+	Description: Comments for Class
+%END REM
+Class BaseDouble As BaseClass
+	Private content As Double
+	
+	%REM
+		Sub New
+		Description: Constructor
+		@param The double value as <code>Double</code>
+	%END REM
+	Public Sub New(d As Double)
+		Me.content = d
+	End Sub
+	
+	%REM
+		Sub setContent
+		@param i - The <code>Double</code> value to set the content to.
+	%END REM
+	Public Sub setContent(d As Double)
+		Me.content = d
+	End Sub
+	
+	%REM
+		Function getContent
+		@return the current <code>Double</code> value.
+	%END REM
+	Public Function getContent() As Double
+		Me.getContent = Me.content
+	End Function
+	
+	%REM
+		Function toString
+		@return The current content as <code>String</code>
+	%END REM
+	Public Function toString() As String
+		Me.toString = CStr(Me.content)
+	End Function
+End Class
+%REM
+	Class BaseBoolean
+	Description: Comments for Class
+%END REM
+Class BaseBoolean As BaseClass
+	Private content As Double
+	
+	%REM
+		Sub New
+		Description: Constructor
+		@param The boolean value as <code>Boolean</code>
+	%END REM
+	Public Sub New(b As Boolean)
+		Me.content = b
+	End Sub
+	
+	%REM
+		Sub setContent
+		@param i - The <code>Boolean</code> value to set the content to.
+	%END REM
+	Public Sub setContent(b As Boolean)
+		Me.content = b
+	End Sub
+	
+	%REM
+		Function getContent
+		@return the current <code>Boolean</code> value.
+	%END REM
+	Public Function getContent() As Boolean
+		Me.getContent = Me.content
+	End Function
+	
+	%REM
+		Function toString
+		@return The current content as <code>String</code>
+	%END REM
+	Public Function toString() As String
+		Me.toString = CStr(Me.content)
+	End Function
+End Class
+%REM
+	Class BaseBoolean
+	Description: Comments for Class
+%END REM
+Class BaseByte As BaseClass
+	Private content As Byte
+	
+	%REM
+		Sub New
+		Description: Constructor
+		@param The byte value as <code>Byte</code>
+	%END REM
+	Public Sub New(b As Byte)
+		Me.content = b
+	End Sub
+	
+	%REM
+		Sub setContent
+		@param i - The <code>Byte</code> value to set the content to.
+	%END REM
+	Public Sub setContent(b As Byte)
+		Me.content = b
+	End Sub
+	
+	%REM
+		Function getContent
+		@return the current <code>Byte</code> value.
+	%END REM
+	Public Function getContent() As Byte
+		Me.getContent = Me.content
+	End Function
+	
+	%REM
+		Function toString
+		@return The current content as <code>String</code>
+	%END REM
+	Public Function toString() As String
+		Me.toString = CStr(Me.content)
+	End Function
+End Class
+%REM
+	Class BaseBoolean
+	Description: Comments for Class
+%END REM
+Class BaseCurrency As BaseClass
+	Private content As Currency
+	
+	%REM
+		Sub New
+		Description: Constructor
+		@param The currency value as <code>Currency</code>
+	%END REM
+	Public Sub New(c As Currency)
+		Me.content = c
+	End Sub
+	
+	%REM
+		Sub setContent
+		@param i - The <code>Currency</code> value to set the content to.
+	%END REM
+	Public Sub setContent(c As Currency)
+		Me.content = c
+	End Sub
+	
+	%REM
+		Function getContent
+		@return the current <code>Currency</code> value.
+	%END REM
+	Public Function getContent() As Currency
+		Me.getContent = Me.content
+	End Function
+	
+	%REM
+		Function toString
+		@return The current content as <code>String</code>
+	%END REM
+	Public Function toString() As String
+		Me.toString = CStr(Me.content)
+	End Function
+End Class
+'++LotusScript Development Environment:2:1:Client_raiseError:6:8
+%REM
+	Function Client_raiseError
+	Description: Raises an error message box on the client.
+	@param message - The error description to display as <code>String</code>
+%END REM
+Function Client_raiseError(message As String) As Integer
+	Dim title As String
+	Dim msg As String
+	Dim br As String
+		
+	br = Chr(10) & Chr(13)
+	title = "Problem encountered"
+	
+	msg = "An error occured:" & br & message & br & br
+	msg = msg & "Details only interesting to developers:" & br
+	msg = msg & "Stack trace: " & br & LSI_Info(14) & br
+	msg = msg & "Memory allocated: " & LSI_Info(50)
+	
+	If(UCase(message)="TEST") Then
+		Client_raiseError = MessageBox(msg, 64, title)
+	Else
+		Client_raiseError = MessageBox(msg, 48, title)
+	End If
+End Function
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,1700 @@
+'++LotusScript Development Environment:2:5:(Options):0:74
+%REM
+	Library com.pitagora.util
+	Created May 12, 2010 by Gernot Hummer/Pitagora
+	 
+	THIS LIBRARY IS PROVIDED ON AN AS IS BASIS. THE CREATOR OF THIS
+	LIBRARY CANNOT BE HELD RESPONSIBLE FOR ANY DAMAGE THAT MAY RESULT
+	IN THE USE OR MISUSE OF THIS LIBRARY.
+	
+	(c) PITAGORA INFORMATIONSMANAGEMENT GMBH, 2010
+	ALL RIGHTS RESERVED. UNAUTHORIZED USE AND/OR COPYING IS PROHIBITED
+	
+	IF YOU WANT TO LICENSE THIS LIBRARY FOR USE IN YOUR OWN PROJECT
+	PLEASE CONTACT THE CREATOR:
+	
+	PITAGORA INFORMATIONSMANAGEMENT GMBH,
+	OLYMPIASTRASSE 17
+	A-6020 INNSBRUCK
+	PHONE: 0043 512 586 765
+	FAX:   0043 512 586 765 - 33
+	MAIL:  office@pitagora.at
+%END REM
+Option Public
+Option Declare
+
+Use "com.pitagora"
+
+
+
+
+
+'++LotusScript Development Environment:2:5:(Forward):0:1
+Declare Public Class HashMap As BaseClass
+Declare Class ArrayList As BaseClass
+Declare Class Math As BaseClass
+Declare Class System As BaseClass
+Declare Class Server As BaseClass
+Declare Class Computation As BaseClass
+Declare Class TimeToolkit
+Declare Class UserInterface As BaseClass
+Declare Class DocumentCollectionSorter As BaseClass
+Declare Sub Initialize
+Declare 	Public Function getCurrentLocation() As NotesDocument
+
+'++LotusScript Development Environment:2:5:(Declarations):0:10
+Const DIR_SEPARATOR = "\"
+Const SHELL_EXECUTION_TIME = 0.1
+
+Const MAILBOX_FILENAME = "mail.box"
+
+Const SPOOFKEY = "~*~FOO.BAR~*~"
+
+Const FORMULA_TRUE = 1
+Const FORMULA_FALSE = 0
+
+Const MINUTES_A_DAY = 480
+
+
+
+%REM
+	Class HashMap
+	Description: This class is a copy of the Java HashMap Class.
+	Due to OOP Restrictions there are certain restriction in usage of
+	this class.<br /><br />
+	- Only <code>String</code>s may be used as keys
+%END REM
+Public Class HashMap As BaseClass
+
+	Private map List As Variant
+	
+	Private counter As Long
+	
+	%REM
+		Sub New
+		Description: Constructor
+	%END REM
+	Public Sub New
+		
+		counter = 0
+		
+	End Sub
+	
+	%REM
+		Sub putValue
+		Description: Add an object to the HashMap
+		@param key - The key to the object as <code>String</code>
+		@param value - The object of any type (stored as <code>Variant</code>)
+	%END REM
+	Public Sub putValue(key As String, value As Variant)
+		
+		If Not Me.containsKey(key) Then Me.counter = Me.counter + 1
+		
+		Set Me.map(key) = value
+		
+	End Sub
+	
+	%REM
+		Sub removeValue
+		Description: Removes an object from the HashMap
+		@param key - The key to the object as <code>String</code>
+	%END REM
+	Public Sub removeValue(key As String)
+		
+		If Me.containsKey(key) Then Erase Me.map(key)
+		
+	End Sub
+	
+	%REM
+		Sub getValue
+		Description: Returns the object mapped to a key
+		@param key - The key for the object as <code>String</code>
+		@return - The object mapped to the handed in key as <code>Variant</code>
+	%END REM
+	Public Function getValue(key As String) As Variant
+		
+		If Me.containsKey(key) Then
+			
+			Set Me.getValue = Me.map(key)
+			
+		End If
+		
+	End Function
+	
+	%REM
+		Sub containsKey
+		Description: True if the key is contained in the HashMap
+		@param key - The key for an object as <code>String</code>
+		@return True if the HashMap contains the handed in key.
+	%END REM
+	
+	Public Function containsKey(key As String) As Boolean
+		
+		If IsElement(Me.map(key)) Then
+			
+			Me.containsKey = True
+			
+		Else
+			
+			Me.containsKey = False
+			
+		End If
+		
+	End Function
+	
+	%REM
+		Function getElementType
+		Description: Returns the object type of an object stored in the HashMap
+		@param key - The key of the object as <code>String</code>
+		@return The type of the stored element at the position of the handed in key as <code>String</code>
+	%END REM
+	Public Function getElementType(key As String) As String
+		
+		If Me.containsKey(key) Then
+			
+			Me.getElementType = TypeName(Me.map(key))
+			
+		End If
+		
+	End Function
+	
+	%REM
+		Function entrySet
+		Description: The HashMaps current object collection for use in a forall loop
+		@return The map itself as <code>List As Variant</code>
+	%END REM
+	Public Function entrySet() As Variant
+		
+		Me.entrySet = Me.map
+		
+	End Function
+	
+	%REM
+		Function keySet
+		@return The HashMaps keyset as <code>Variant</code>
+	%END REM
+	Public Function keySet() As Variant
+		
+		On Error GoTo ERROR_HANDLER
+		
+		Dim kSet List As String
+		
+		Dim currCount As Integer
+		
+		
+		currCount = 0
+		
+		ForAll value In Me.map
+			
+			kSet(currCount) = ListTag(value)
+			
+			currCount = currCount + 1
+			
+		End ForAll
+		
+		Me.keySet = kSet
+		
+		Exit Function
+		
+ERROR_HANDLER:
+		Dim bError As New BaseError(ERROR_TITLE, ERROR_HASHMAP_KEYSET & ": " & Error)
+		
+		Call Me.getErrorCollection().addError(bError)
+		
+		Exit Function
+		
+	End Function
+	
+	%REM
+		Function getCounter
+		Description: Comments for Function
+	%END REM
+	Public Function getCounter() As Long
+		
+		Me.getCounter = Me.counter
+		
+	End Function
+End Class
+%REM
+	Class ArrayList
+	Description: This class works like an ArrayList in Java. Objects
+	stored in it need to be derived from <code>com.pitagora.BaseClass</code>
+%END REM
+Class ArrayList As BaseClass
+	
+	Private array List As BaseClass
+	
+	Private count As Long
+	
+	%REM
+		Sub New
+		Description: Constructor
+	%END REM
+	Public Sub New
+		
+		Me.count = 0
+		
+	End Sub
+	
+	%REM
+		Sub add
+		Description: Add an Object to the List
+		@param - Any object derived from <code>com.pitagora.BaseClass</code> (stored internally as <code>Variant</code>)
+	%END REM
+	Public Sub addObject(obj As BaseClass)
+		
+		Set Me.array(Me.count) = obj
+		
+		Me.count = Me.count + 1
+		
+	End Sub
+	
+	%REM
+		Sub contains
+		Description: True if an object is part of the ArrayList
+		@param obj - The object to look for as <code>com.pitagora.BaseClass</code>
+		@return True if the document is part of the ArrayList
+	%END REM
+	Public Function contains(obj As BaseClass) As Boolean
+		
+		On Error GoTo ERROR_HANDLER
+		
+		Me.contains = False
+		
+		ForAll storedObj In Me.array
+			
+			If storedObj.equals(obj) Then
+				
+				Me.contains = True
+				
+				Exit ForAll
+				
+			End If
+			
+		End ForAll
+		
+		Exit Function
+ERROR_HANDLER:
+		Dim bError As New BaseError(ERROR_TITLE, ERROR_OBJECT_COMPARISON & ": " & obj.getClass())
+		
+		Call Me.getErrorCollection().addError(bError)
+		
+		Client_raiseERror(bError.getErrorDesc())
+		
+		Exit Function
+	End Function
+	
+	%REM
+		Function indexOf
+		Description: returns the index of the handed in object
+		@param obj - The object to look for as <code>com.pitagora.BaseClass</code>
+		@return The index of the object. -1 if the object was not found.
+	%END REM
+	Public Function indexOf(obj As BaseClass) As Long
+		
+		Dim index As Long
+		
+		index = 0
+		
+		Me.indexOf = -1
+		
+		ForAll storedObj In Me.array
+			
+			If storedObj.equals(obj) Then
+				
+				Me.indexOf = index
+				
+				Exit ForAll
+				
+			End If
+			
+			index = index + 1
+			
+		End ForAll
+		
+	End Function
+	
+	
+	%REM
+		Sub removeObject
+		Description: Removes a previously stored object from the <code>ArrayList</code>
+		@param - The object to remove as <code>com.pitagora.BaseClass</code>
+	%END REM
+	Public Sub removeObject(obj As BaseClass)
+		
+		On Error GoTo ERROR_HANDLER
+		
+		Dim newArray List As Variant
+		
+		Dim newCount As Long
+		
+		'check and ignore document for removal in checkedObj
+		newCount = 0
+		ForAll storedObj In Me.array
+			
+			If Not storedObj.equals(obj) Then
+				
+				Set newArray(newCount) = storedObj
+				
+				newCount = newCount + 1
+				
+			End If
+			
+		End ForAll
+		
+		Me.count = newCount
+		
+		newCount = 0
+		
+		'rebuild the new ArrayList with the remaining objects
+		Erase Me.array
+		
+		ForAll checkedObj In newArray
+			
+			Set Me.array(newCount) = checkedObj
+			
+			newCount = newCount + 1
+			
+		End ForAll
+		
+		Exit Sub
+		
+ERROR_HANDLER:
+		Dim bError As New BaseError(ERROR_TITLE, ERROR_OBJECT_REMOVE & ": " & Error)
+		
+		Call Me.getErrorCollection().addError(bError)
+		
+		Exit Sub
+	End Sub
+	
+	%REM
+		Function getObject
+		@return the Object at the handed in index position
+	%END REM
+	Public Function getObject(i As Integer) As BaseClass
+	
+		On Error GoTo ERROR_HANDLER
+	
+		If i>=0 And i<Me.count Then
+			
+			Set Me.getObject = Me.array(i)
+			
+		End If
+		
+		Exit Function
+		
+ERROR_HANDLER:
+		Dim bError As New BaseError(ERROR_TITLE, ERROR_OBJECT_GET & ": " & Error)
+		
+		Call Me.getErrorCollection().addError(bError)
+		
+		Exit Function
+		
+	End Function
+	
+	%REM
+		Sub removeObjectByIndex
+		@param i - The index of the object to remove from the ArrayList
+	%END REM
+	Public Sub removeObjectByIndex(i As Integer)
+		
+		On Error GoTo ERROR_HANDLER
+		
+		If i>=0 And i<Me.count Then
+			
+			Dim newArray List As Variant
+			
+			Dim currCount
+			
+			Dim newCount As Long
+			
+			'check and ignore document for removal in checkedObj
+			currCount = 0
+			
+			newCount = 0
+			
+			ForAll storedObj In Me.array
+				
+				If currCount <> i Then
+					
+					Set newArray(newCount) = storedObj
+					
+					newCount = newCount + 1
+					
+				End If
+				
+				currCount = currCount + 1
+				
+			End ForAll
+			
+			Me.count = newCount
+			
+			newCount = 0
+			
+			'rebuild the new ArrayList with the remaining objects
+			Erase Me.array
+			
+			ForAll checkedObj In newArray
+				
+				Set Me.array(newCount) = checkedObj
+				
+				newCount = newCount + 1
+				
+			End ForAll
+			
+		End If
+		
+		Exit Sub
+		
+		
+ERROR_HANDLER:
+		Dim bError As New BaseError(ERROR_TITLE, ERROR_OBJECT_REMOVE & ": " & Error)
+		
+		Call Me.getErrorCollection.addError(bError)
+		
+		Exit Sub
+		
+	End Sub
+	
+	%REM
+		Function getCount
+		Description: Comments for Function
+		@return The current amount of Objects in this ArrayList
+	%END REM
+	Public Function getCount() As Long
+		
+		Me.getCount = Me.count
+		
+	End Function
+	
+	%REM
+		Function toArray
+		@return The currently stored ArrayList as an actual Array of type <code>Variant</code>
+	%END REM
+	Public Function toArray() As Variant
+		
+		On Error GoTo ERROR_HANDLER
+		
+		Dim returnArray() As Variant
+		
+		Dim currIdx As Long
+		
+		
+		'### FIX ON 14-06-2010: BEFOREHAND THE ARRAY WAS ONE ITEM LARGER THAN THE ACTUAL CONTENT
+		If Me.count = 0 Then Exit Function
+		
+		ReDim returnArray(Me.count-1)
+		
+		'### END OF FIX
+		
+		currIdx = 0
+		
+		ForAll storedObj In Me.array
+			
+			Set returnArray(currIdx) = storedObj
+			
+			currIdx = currIdx + 1
+			
+		End ForAll
+		
+		
+		Me.toArray = returnArray
+		
+		Exit Function
+		
+		
+ERROR_HANDLER:
+		
+		Dim bError As New BaseError(ERROR_TITLE, ERROR_ARRAY_CONVERSION & ": " & Error)
+		
+		Call Me.getErrorCollection().addError(bError)
+		
+		Exit Function
+		
+	End Function
+	
+End Class
+%REM
+	Class Math
+	Description: Comments for Class
+%END REM
+Class Math As BaseClass
+	%REM
+		Sub New
+		Description: Constructor
+	%END REM
+	Public Sub New
+		
+	End Sub
+	
+	%REM
+		Function ceil
+		@return the ceil value as <code>Double</code>
+	%END REM
+	Public Function ceil(num As Double) As Double
+		
+		If (num*100) Mod 100 > 50 Then
+			
+			Me.ceil = Round(num,0)
+			
+		Else
+			
+			Me.ceil = Round(num,0) + 1
+			
+		End If
+		
+	End Function
+	
+	%REM
+		Function floor
+		@return the floor value as <code>Double</code>
+	%END REM
+	Public Function floor(num As Double) As Double
+		
+		If (num*100) Mod 100 > 50 Then
+			
+			floor = Round(num,0) - 1
+			
+		Else 
+			
+			floor = Round(num,0)
+			
+		End If		
+		
+	End Function
+	
+	%REM
+		Function absolute
+		@return The absolute version of a numeric value
+	%END REM
+	Public Function absolute(num As Double) As Double
+		
+		If num < 0 Then Me.absolute = num * -1
+		
+	End Function
+	
+	%REM
+		Function max
+		@return The bigger value of two
+	%END REM
+	Public Function max(a As Double, b As Double) As Double
+		
+		If a > b Then
+			
+			Me.max = a
+			
+		Else
+			
+			Me.max = b
+			
+		End If
+		
+	End Function
+	
+	%REM
+		Function min
+		@return The smaller value of two
+	%END REM
+	Public Function min(a As Double, b As Double) As Double
+		
+		If a < b Then
+			
+			Me.min = a
+			
+		Else
+			
+			Me.min = b
+			
+		End If
+		
+	End Function
+	
+	%REM
+		Function pow
+		@return raises a to the power of b
+	%END REM
+	Public Function pow(a As Double, b As Double) As Double
+		Dim result As Double
+		
+		Dim i As Double
+		
+		result = a
+		
+		For i = 1 To b
+			
+			result = result * a
+			
+		Next i
+		
+		Me.pow = result
+		
+	End Function
+End Class
+%REM
+	Class System
+	Description: Comments for Class
+%END REM
+Class System As BaseClass
+	%REM
+		Sub new
+		Description: Constructor
+	%END REM
+	Public Sub New
+		
+	End Sub
+	
+	%REM
+		Function getSetting
+		Description: get a Windows System Setting such as eg. the TEMP variable
+		@param The name of the system variable as <code>String</code>
+	%END REM
+	Public Function getSetting(varName As String) As String
+		
+		Me.getSetting = Environ(varName)
+		
+	End Function
+	
+	%REM
+		Function getTempFolder
+		Description: Direct access to the often used TEMP system variable
+	%END REM
+	Public Function getTempFolder() As String
+		
+		Me.getTempFolder = Me.getSetting("TEMP")
+		
+	End Function
+	
+	%REM
+		Function getProgramDataFolder
+		Description: Comments for Function
+	%END REM
+	Public Function getProgramDataFolder() As String
+		
+		'Windows Vista and Windows 7
+		Me.getProgramDataFolder = Me.getSetting("PROGRAMDATA")
+		
+		If Me.getProgramDataFolder = "" Then
+			
+			'Windows XP
+			Me.getProgramDataFolder = Me.getSetting("APPDATA")
+			
+		End If
+		
+	End Function
+	
+	%REM
+		Function getUserName
+		Description: Comments for Function
+	%END REM
+	Public Function getUserName() As String
+		
+		Me.getUserName = Me.getSetting("USERNAME")
+		
+	End Function
+	
+	%REM
+		Function getAppDataFolder
+		Description: Comments for Function
+	%END REM
+	Public Function getAppDataFolder() As String
+		
+		Me.getAppDataFolder = Me.getSetting("APPDATA")
+		
+	End Function
+	
+	%REM
+		Function fileExists
+		@param Filename to check for with full path as <code>String</code>
+	%END REM
+	Public Function fileExists(sFileName As String) As Boolean
+		
+		On Error GoTo ERROR_HANDLER
+		
+		'Declare variables..
+		Dim iPos As Integer, iPrevPos As Integer
+		
+		Dim sFile As String
+
+		'Validate passed filename...
+		iPos = 0
+		
+		Do
+			
+			iPrevPos = iPos
+			
+			iPos = InStr(iPos + 1, sFileName, "\")
+			
+		Loop Until iPos = 0
+		
+		iPos = iPrevPos
+
+		sFile = Right$(sFileName, Len(sFileName) - iPos)
+
+		'Check to see if file exists and return results...
+		If Dir$(sFileName) = sFile Then
+			
+			FileExists = True
+			
+		Else
+			
+			FileExists = False
+			
+		End If
+		
+		Exit Function
+		
+ERROR_HANDLER:
+		Dim bError As New BaseError(ERROR_TITLE, ERROR_SYSTEM_FILE & ": " & sFileName)
+		
+		Call Me.getErrorCollection().addError(bError)
+		
+		Exit Function
+	End Function
+	
+	%REM
+		Function isFileAvailable
+		@param filePath as String, the desired files location
+		@return true if no output handle is on the file
+	%END REM
+	Public Function isFileAvailable(filePath As String)
+		
+		On Error GoTo ERROR_HANDLER
+		
+		If Me.fileExists(filePath) Then
+			
+			Dim localFileNum As Integer
+			
+			localFileNum = FreeFile()
+			
+			Open filePath For Random As localFileNum
+			
+			Close localFileNum
+			
+			Me.isFileAvailable = True
+			
+		Else
+			
+			Me.isFileAvailable = False
+			
+			Print "File is not even there."
+			
+		End If
+		
+		Exit Function
+		
+ERROR_HANDLER:
+		Me.isFileAvailable = False
+		
+		Print "File is being filled."
+		
+		Exit Function
+		
+	End Function
+	
+	%REM
+		Function postToShell
+		Description: Sends a command to the command shell
+		@param cmd as <code>String</code> - The actual command
+		@returns true if the command was issued successfully
+	%END REM
+	Public Function postToShell(cmd As String) As Boolean
+		
+		On Error GoTo ERROR_HANDLER
+		
+		Dim fileNum As Integer
+		
+		Dim filePath As String
+		
+		Dim result As Integer
+		
+		Me.postToShell = False
+		
+		fileNum = FreeFile()
+		
+		filePath = Me.getTempFolder()
+		
+		If Right(filePath, 1) <> DIR_SEPARATOR Then
+			
+			filePath = filePath & DIR_SEPARATOR
+			
+		End If
+		
+		filePath = filePath & CStr(Today) & "_sysshell.cmd"
+		
+		'create actual command file for execution
+		Open filePath For Output As #fileNum
+		
+		'switch command line to unicode
+		Print #fileNum, "mode con cp select=1252"
+		
+		Print #fileNum, cmd
+		
+		Close #fileNum
+		
+		'execute the command
+		result = Shell(filePath, 7)
+		
+		Sleep SHELL_EXECUTION_TIME
+		
+		If result = 33 Then Me.postToShell = True
+		
+		Kill filePath
+		
+		Exit Function
+		
+ERROR_HANDLER:
+		Dim bError As New BaseError(ERROR_TITLE, ERROR_SHELL_COMMAND & ": " & cmd)
+		
+		Call Me.getErrorCollection().addError(bError)
+		
+		Exit Function
+	End Function
+	
+	%REM
+		Function fileDate
+		Description: Reads the date of a file on the filesystem
+		@param Full path of file as <code>String</code>
+		@returns a <code>NotesDateTime</code> containing the last modified date of the file
+	%END REM
+	Public Function fileDate(path As String) As NotesDateTime
+		
+		On Error GoTo ERROR_HANDLER
+		
+		Dim cmd As String
+		
+		Dim targetFile As String
+		
+		Dim fileNum As Integer
+		
+		Dim currentLine As String
+		
+		Dim fileName As String
+		
+		Dim dtStr As String
+		
+		Dim dt As NotesDateTime
+		
+		targetFile = Me.getTempFolder()
+		
+		If Right(targetFile, 1) <> DIR_SEPARATOR Then
+			
+			targetFile = targetFile & DIR_SEPARATOR
+			
+		End If
+		
+		fileName = StrRightBack(path, DIR_SEPARATOR)
+		
+		targetFile = targetFile & CStr(Today) & "_fileDate.fd"
+		
+		fileNum = FreeFile()
+		
+		cmd = "DIR " & path & " >" & targetFile
+		
+		If Me.fileExists(path) Then
+			
+			Call Me.postToShell(cmd)
+			
+			Open targetFile For Input As #fileNum
+			
+			While Not EOF(fileNum)
+				
+				Line Input #fileNum, currentLine
+				
+				If InStr(LCase(currentLine), LCase(fileName)) > 0 Then
+					
+					currentLine = FullTrim(currentLine)
+					
+					dtStr = StrToken(currentLine, " ", 1) & " " & StrToken(currentLine, " ", 2)
+					
+					Set dt = New NotesDateTime(dtStr)
+					
+				End If
+				
+			Wend
+			
+			Close #fileNum
+			
+			Kill targetFile	
+					
+		End If
+		
+		If Not dt Is Nothing Then
+			
+			Set Me.fileDate = dt
+			
+		Else
+			
+			Set Me.fileDate = New NotesDateTime("01.01.1970 00:00:00")
+			
+		End If
+		
+		Exit Function
+		
+ERROR_HANDLER:
+		
+		Dim bError As New BaseError(ERROR_TITLE, ERROR_FILE_LASTMODIFIED & ": " & path)
+		
+		Call Me.getErrorCollection.addError(bError)
+		
+		Exit Function
+		
+	End Function
+End Class
+
+
+%REM
+	Class Server
+	Description: Comments for Class
+%END REM
+Class Server As BaseClass
+	Private session As NotesSession
+	Private canonicalName As String
+	Private commonName As String
+	Private NotesDomain As String
+	Private mailBox As NotesDatabase
+	
+	%REM
+		Sub New
+		Description: Comments for Sub
+	%END REM
+	Public Sub New(sName As String)
+		On Error GoTo ERR_HANDLER
+		
+		Set session = New NotesSession()
+		
+		
+		If UCase(Left(sName, 3)) = "CN=" Then
+			
+			Me.canonicalName = sName
+			
+			Me.commonName = StrLeft(StrRight(UCase(sName), "CN="), "/")
+			
+			Me.notesDomain = StrRight(UCase(sName), "O=")
+			
+		Else
+			
+			If Not InStr(sName, "/") > 0 Then
+				
+				Me.commonName = sName
+				
+				Me.notesDomain = StrRight(session.Username, "O=")
+				
+				Me.canonicalName = "CN=" & Me.commonName & "/O=" & Me.notesDomain
+				
+			Else
+				
+				Me.commonName = StrLeft(sName, "/")
+				
+				Me.notesDomain = StrRight(sName, "/")
+				
+				Me.canonicalName = "CN=" & Me.commonName & "/O=" & Me.notesDomain
+				
+			End If
+			
+		End If
+		
+		Set Me.mailBox = session.GetDatabase(Me.canonicalName, MAILBOX_FILENAME)
+		
+		If Me.canonicalName = "CN=/O=" & Me.notesDomain Then Me.canonicalName = ""
+		
+		Exit Sub
+		
+ERR_HANDLER:
+		Dim bError As New BaseError(ERROR_TITLE, ERROR_SERVER_CONNECTION)
+		
+		Call Me.getErrorCollection().addError(bError)
+		
+	End Sub
+	
+	%REM
+		Function getCanonicalName
+		@return The canonical name of the server
+	%END REM
+	Public Function getCanonicalName() As String
+		
+		Me.getCanonicalName = Me.canonicalName
+		
+	End Function
+	
+	%REM
+		Function getCommonName
+		@return The common name part of the server
+	%END REM
+	Public Function getCommonName() As String
+		
+		Me.getCommonName = Me.commonName
+		
+	End Function
+	
+	%REM
+		Function getNotesDomain
+		@return The servers notes domain
+	%END REM
+	Public Function getNotesDomain() As String
+		
+		Me.getNotesDomain = Me.notesDomain
+		
+	End Function
+	
+	%REM
+		Function getServerMailBox
+		@return The servers mail box as <code>NotesDatabase</code>
+	%END REM
+	Public Function getServerMailBox() As NotesDatabase
+		
+		Set Me.getServerMailBox = Me.mailBox
+		
+	End Function
+	
+	%REM
+		Function sendMailAs
+		@param senderName as String, the Name in which the mail is to be sent
+		@param mailDoc as NotesDocument, the actual document to send as e-mail
+		@return true, if dispatching the e-mail was successful
+	%END REM
+	Public Function sendMailAs(senderName As String, mailDoc As NotesDocument) As Boolean
+		
+		On Error GoTo ERR_HANDLER
+		
+		Me.sendMailAs = False
+		
+		If Not Me.hasError() Then
+			
+			Dim dispatchDoc As NotesDocument
+			
+			
+			Set dispatchDoc = Me.mailBox.CreateDocument()
+			
+			Call mailDoc.CopyAllItems(dispatchDoc, True)
+			
+			Call dispatchDoc.ReplaceItemValue("From", senderName)
+			
+			Call dispatchDoc.Save(True, False, True)
+			
+			Me.sendMailAs = True
+			
+		End If
+		
+		Exit Function
+		
+ERR_HANDLER:
+		Dim bError As New BaseError(ERROR_TITLE, ERROR_MAIL_SEND & ": " & Error)
+		
+		Call Me.getErrorCollection().addError(bError)
+		
+	End Function
+	
+	%REM
+		Sub sendToShell
+		@param The command as String
+		@return The servers console response
+	%END REM
+	Public Function postToShell(cmd As String) As String
+		
+		On Error GoTo ERROR_HANDLER
+		
+		Me.postToShell = session.SendConsoleCommand(Me.canonicalName, cmd)
+		
+		Exit Function
+		
+ERROR_HANDLER:
+		Dim bError As New BaseError(ERROR_TITLE, ERROR_SHELL_COMMAND & ": " & Error)
+		
+		Call Me.getErrorCollection().addError(bError)
+		
+		Exit Function
+		
+	End Function
+End Class
+%REM
+	Class Computation
+	Description: Comments for Class
+%END REM
+Class Computation As BaseClass
+	Private targetItemName As String
+	Private formula As String
+	Private result As Variant
+	Private initial As Boolean
+	Private fAppend As Boolean
+	
+	Public Sub New(targetItemName As String, formula As String)
+		
+		Me.initial = False
+		
+		Me.fAppend = False
+		
+	End Sub
+	
+	%REM
+		Sub setInitial
+		@param bool as Boolean, If true, the computation will only be executed on new documents.
+	%END REM
+	Public Sub setInitial(bool As Boolean)
+		
+		Me.initial = bool
+		
+	End Sub
+	
+	%REM
+		Function compute
+		@param doc as NotesDocument, the document to execute the formula computation in.
+	%END REM
+	Public Function compute(doc As NotesDocument)
+		
+		If Not Me.initial Or doc.IsNewNote Then
+			
+			Me.result = Evaluate(Me.formula, doc)
+			
+		End If
+		
+	End Function
+	
+	%REM
+		Function commit
+		Description: Comments for Function
+	%END REM
+	Public Function commit(doc As NotesDocument)
+		
+		Dim item As NotesItem
+		
+		If Not doc.HasItem(Me.targetItemName) Then
+			
+			Call doc.ReplaceItemValue(Me.targetItemName, result)
+			
+		Else
+			
+			Set item = doc.GetItemValue(Me.targetItemName)
+			
+			ForAll value In result
+				
+				Call item.AppendToTextList(CStr(value))
+				
+			End ForAll
+			
+		End If
+		
+	End Function
+	
+	%REM
+		Function getResult
+		Description: Comments for Function
+	%END REM
+	Public Function getResult() As Variant
+		
+		Me.getResult = Me.result
+		
+	End Function
+	
+	%REM
+		Function setFormula
+		Description: Comments for Function
+	%END REM
+	Public Function setFormula(formula As String)
+		
+		Me.formula = formula
+		
+	End Function
+	
+	%REM
+		Function getFormula
+		Description: Comments for Function
+	%END REM
+	Public Function getFormula() As String
+		
+		Me.getFormula = Me.formula
+		
+	End Function
+	
+End Class
+%REM
+	Class TimeToolkit
+	Description: Comments for Class
+%END REM
+Class TimeToolkit
+	
+	Private syntaxFound As Boolean
+	
+	Public Function getMinutes(textTime As String) As Double
+		
+		On Error GoTo ERR_HANDLER
+		
+		syntaxFound = False
+		
+		If InStr(textTime, ".") Then Exit Function
+		
+		textTime = Trim(LCase(textTime))
+		
+		If Len(textTime) = 4 & IsNumeric(textTime) Then
+			
+			getMinutes = CInt(Left(textTime, 2)) * 60 + CInt(Right(textTime, 2))
+			
+			syntaxFound = True
+			
+			Exit Function
+			
+		End If
+		
+		'recognize special content
+		Dim lastChar As String
+		
+		lastChar = Right(textTime, 1)
+		
+		If lastChar = "m" Then
+			
+			getMinutes = CDbl(FullTrim(StrLeftBack(textTime, "m")))
+			
+			syntaxFound = True
+			
+			Exit Function
+			
+		End If
+		
+		If Not syntaxFound And lastChar = "h" Then
+			
+			getMinutes = CDbl(CDbl(FullTrim(StrLeftBack(textTime, "h"))) *60)
+			
+			syntaxFound = True
+			
+			Exit Function
+			
+		End If
+		
+		If Not syntaxFound And (lastChar = "t" Or lastChar = "d") Then
+			
+			getMinutes = CDbl(CDbl(FullTrim(StrLeftBack(textTime, lastChar))) * 480)
+			
+			syntaxFound = True
+			
+			Exit Function
+			
+		End If
+		
+		If Not syntaxFound And InStr(textTime, ":") > 0 Then
+			
+			getMinutes = CDbl(FullTrim(StrLeft(textTime, ":"))) * 60 + CDbl(FullTrim(StrRight(textTime, ":")))
+			
+			syntaxFound = True
+			
+			Exit Function
+			
+		End If
+		
+		If IsNumeric(textTime) Then
+			
+			getMinutes = CDbl(textTime)
+			
+			syntaxFound = True
+			
+			Exit Function
+			
+		End If
+		
+		getMinutes = 0
+		
+		Exit Function
+		
+ERR_HANDLER:
+		
+		Exit Function
+		
+	End Function
+	
+	
+	Public Function minutesToHumanReadable(minutes As Double) As String
+	
+		If minutes < 60 Then
+			
+			minutesToHumanReadable = CStr(minutes) & " Minuten"
+			
+			Exit Function
+			
+		End If	
+		
+		If minutes < MINUTES_A_DAY Then
+			
+			minutesToHumanReadable = Format(CDbl(minutes)/60, "#,##0.00") & " Stunden"
+			
+			Exit Function
+			
+		End If 
+		
+		If minutes < MINUTES_A_DAY * 5 Then
+			
+			minutesToHumanReadable = Format(CDbl(minutes)/MINUTES_A_DAY, "#,##0.00") & " Tage"
+			
+			Exit Function
+			
+		End If
+		
+		If minutes < MINUTES_A_DAY * 30 Then
+			
+			minutesToHumanReadable = Format(CDbl(minutes)/(MINUTES_A_DAY*5), "#,##0.00") & " Wochen"
+			
+			Exit Function
+			
+		End If
+	
+		If CDbl(minutes) < CDbl(MINUTES_A_DAY) * 360 Then
+			
+			minutesToHumanReadable = Format(CDbl(minutes)/(MINUTES_A_DAY *30), "#,##0.00") & " Monate"
+			
+			Exit Function
+			
+		End If
+			
+		minutesToHumanReadable = Format(CDbl(minutes)/(CDbl(MINUTES_A_DAY)*360), "#,##0.00") & " Jahre"
+		
+	End Function
+	
+	
+	%REM
+		Function hasFoundSyntax
+		Description: Comments for Function
+	%END REM
+	Public Function hasFoundSyntax()
+		
+		hasFoundSyntax = syntaxFound
+		
+	End Function
+	
+	%REM
+		Function minutesToHHMM
+		Description: Comments for Function
+	%END REM
+	Public Function minutesToHHMM(totalMinutes As Double) As String
+		
+		Dim math As New Math()
+		
+		Dim hours As Long
+		
+		Dim minutes As Long
+		
+		hours = math.floor(totalMinutes/60)
+		
+		minutes = totalMinutes - hours*60
+		
+		minutesToHHMM = Format(hours, "00") & ":" & Format(minutes, "00")
+		
+	End Function
+	
+	
+	%REM
+		Function sortableToVisualDate
+		Description: Comments for Function
+	%END REM
+	Public Function sortableToVisualDate(sortable As String) As NotesDateTime
+		
+		Dim yr As String
+		Dim m As String
+		Dim d As String
+		
+		yr = Left(sortable, 4)
+		m = Mid(sortable, 5, 2)
+		d = Right(sortable, 2)
+		
+		Set sortableToVisualDate = New NotesDateTime(d & "." &  m & "." & yr)
+		
+	End Function
+	
+	%REM
+		Function visualToSortableDate
+		Description: Comments for Function
+	%END REM
+	Public Function visualToSortableDate(visual As NotesDateTime) As String
+		
+		Dim yr As Integer
+		Dim m As Integer
+		Dim d As Integer
+		
+		If Not visual Is Nothing Then
+			
+			yr = Year(visual.LSLocalTime)
+			m = Month(visual.LSLocalTime)
+			d = Day(visual.LSLocalTime)
+			
+			visualToSortableDate = Format(yr, "0000") & Format(m, "00") & Format(d, "00")
+			
+		End If
+		
+	End Function
+End Class
+
+%REM
+	Class UserInterface
+	Description: Comments for Class
+%END REM
+Class UserInterface As BaseClass
+	Private workspace As NotesUIWorkspace
+	Private session As NotesSession
+	
+	%REM
+		Sub New
+		Description: Comments for Sub
+	%END REM
+	Public Sub New(workspace As NotesUIWorkspace)
+		
+		Set Me.workspace = workspace
+		
+		Set Me.session = New NotesSession()
+		
+	End Sub
+	
+	%REM
+		Function pickDocumentByProperty
+		Description: Comments for Function
+	%END REM
+	Public Function pickDocumentByItemValue(dc As NotesDocumentCollection, title As String, displayItemName As String) As NotesDocument
+		
+		Dim formName As String
+		
+		Dim choices() As String
+		
+		Dim choiceConverter List As String
+		
+		Dim choiceID As String
+		
+		Dim doc As NotesDocument
+		
+		Dim choiceDoc As New NotesDocument(session.CurrentDatabase)
+		
+		Dim i As Integer
+		
+		Dim t As Variant
+		
+		ReDim choices(dc.Count())
+		
+		Set doc = dc.GetFirstDocument()
+		
+		i = 0
+		
+		While Not doc Is Nothing
+			
+			t = Evaluate(displayItemName, doc)
+			
+			choices(i) = CStr(t(0))
+			
+			choiceConverter(choices(i)) = doc.UniversalID
+			
+			i = i + 1
+			
+			Set doc = dc.GetNextDocument(doc)
+			
+		Wend
+		
+		formName = "dlgSingleChoice"
+		
+		Call choiceDoc.ReplaceItemValue("Title", title)
+		
+		Call choiceDoc.ReplaceItemValue("AvailableSelections", choices)
+		
+		If workspace.Dialogbox(formName, True, True, True, False, False, False, title, choiceDoc, True, True, False) Then
+			
+			If choiceDoc.GetItemValue("Selection")(0) <> "" Then
+				
+				choiceID = choiceConverter(choiceDoc.GetItemValue("Selection")(0))
+				
+				Set doc = dc.GetFirstDocument()
+				
+				While Not doc Is Nothing
+					
+					If doc.UniversalID = choiceID Then
+						
+						Set pickDocumentByItemValue = doc
+						
+						Exit Function
+						
+					End If
+					
+					Set doc = dc.GetNextDocument(doc)
+					
+				Wend
+				
+			End If
+			
+		End If
+		
+	End Function
+	
+	%REM
+		Function pickValue
+		Description: Comments for Function
+	%END REM
+	Public Function pickValue(title As String, choices As Variant) As String
+		
+		Dim doc As NotesDocument
+		
+		Dim selItem As NotesItem
+		
+		Set doc = session.CurrentDatabase().CreateDocument()
+		
+		Set selItem = New NotesItem(doc, "AvailableSelections", "")
+		
+		ForAll value In Choices
+			
+			selItem.AppendToTextList(CStr(value))
+			
+		End ForAll
+		
+		If workspace.Dialogbox("dlgSingleChoice", True, True, True, False, False, False,_
+			title, doc, True, True, False) Then
+		
+			pickValue = doc.GetItemValue("Selection")(0)
+		
+		End If
+		
+	End Function
+	
+End Class
+%REM
+	Class DocumentCollectionSorter
+	Description: Comments for Class
+%END REM
+Class DocumentCollectionSorter As BaseClass
+	Function sortCollection(viewName As String, coll As NotesDocumentCollection, fieldnames() As String) As NotesDocumentCollection
+
+		' ------------------------------------------------
+		' --- You may use and/or change this code freely
+		' --- provided you keep this message
+		' ---
+		' --- Description:
+		' --- Sorts and returns a NotesDocumentCollection
+		' --- Fieldnames parameter is an array of strings
+		' --- with the field names to be sorted on
+		' ---
+		' --- By Max Flodén 2005 - http://www.tjitjing.com
+		' ------------------------------------------------
+
+		Dim session As New NotesSession
+		Dim db As NotesDatabase
+		Dim collSorted As NotesDocumentCollection
+		Dim doc As NotesDocument
+		Dim i As Integer, n As Integer
+		Dim arrFieldValueLength() As Long
+		Dim arrSort, strSort As String
+		Dim fakesearchstring As String
+		
+		If coll.Count() = 0 Then
+			
+			Set sortCollection = coll
+			
+			Exit Function
+			
+		End If
+
+		fakesearchstring = "{FOO.BAR}" 'This search string must NOT match anything in view
+		Set db = session.CurrentDatabase
+
+		' ---
+		' --- 1) Build array to be sorted
+		' ---
+
+		'Fill array with fieldvalues and docid and get max field length
+		ReDim arrSort(0 To coll.Count -1, 0 To UBound(fieldnames) + 1)
+		ReDim arrFieldValueLength(0 To UBound(fieldnames) + 1)
+		For i = 0 To coll.Count - 1
+			Set doc = coll.GetNthDocument(i + 1)
+			For n = 0 To UBound(fieldnames) + 1
+
+				If n = UBound(fieldnames) + 1 Then
+					arrSort(i,n) = doc.UniversalID
+					arrFieldValueLength(n) = 32
+				Else
+					arrSort(i,n) = "" & doc.GetItemValue(fieldnames(n))(0)
+					' Check length of field value
+					If Len(arrSort(i,n)) > arrFieldValueLength(n) Then
+						arrFieldValueLength(n) = Len(arrSort(i,n))
+					End If
+				End If
+
+			Next n
+		Next i
+
+		'Merge fields into list that can be used for sorting using @Sort function
+		For i = 0 To coll.Count - 1
+			If Not strSort = "" Then strSort = strSort & ":"
+			strSort = strSort & """"
+			For n = LBound(fieldnames) To UBound(fieldnames) + 1
+				strSort = strSort & Left(arrSort(i,n) & Space(arrFieldValueLength(n)), arrFieldValueLength(n))
+			Next n
+			strSort = strSort & """"
+		Next i
+
+		' ---
+		' --- 2) Sort array
+		' ---
+		arrSort = Evaluate("@Sort(" & strSort & ")")
+
+		' ---
+		' --- 3) Use sorted array to sort collection
+		' ---
+		Set collSorted = coll.Parent.GetView(viewname).GetAllDocumentsByKey(fakesearchstring)
+
+		For i = 0 To UBound(arrSort)
+			Set doc = db.GetDocumentByUNID(Right(arrSort(i), 32))
+			Call collSorted.AddDocument(doc)
+		Next i
+
+		' ---
+		' --- 4) Return collection
+		' ---
+		Set sortCollection = collSorted
+
+	End Function
+End Class
+'++LotusScript Development Environment:2:2:Initialize:1:10
+Sub Initialize
+	
+End Sub
+
+
+'++LotusScript Development Environment:2:1:getCurrentLocation:5:8
+%REM
+		Sub GetCurrentLocation
+		Description: Get the current location document of the user
+	%END REM
+	Public Function getCurrentLocation() As NotesDocument
+		
+		Dim session As New NotesSession
+		
+		Dim books As Variant
+		Dim locations As NotesView
+		Dim locationDoc As NotesDocument
+		Dim key As String
+		Dim index As Integer
+		
+		books = session.AddressBooks
+		ForAll b In books ' get users public address book
+			
+			If Not b.IsPublicAddressBook Then
+				
+				'actual retrieval of location document
+				Call b.open("","")
+				If b.isOpen Then
+					Set locations=b.GetView("Locations")
+					If Not locations Is Nothing Then
+						key=session.GetEnvironmentString("Location",True)
+						If key<>"" Then
+							index=InStr(key,",")
+							If index>0 Then key=Left(key,index-1)
+							Set locationDoc=locations.GetDocumentByKey(key,True)
+							If Not locationDoc Is Nothing Then
+								Set GetCurrentLocation=locationDoc
+								
+							Else
+								Error 4101, {Current location document not found.}
+							End If
+						Else
+							Error 4101, {Unable to look up current location.}
+						End If
+					Else
+						Error 4101, {Personal name & address book does not contain a "Locations" view.}
+					End If
+				Else
+					Error 4101, "Unable to open personal name & address book"
+				End If
+				
+			End If
+			
+		End ForAll
+		Error 4101, "Unable to locate personal name & address book"
+	End Function

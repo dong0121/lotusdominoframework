@@ -1,0 +1,70 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!DOCTYPE note SYSTEM 'xmlschemas/domino_8_5_3.dtd'>
+<note class='filter' xmlns='http://www.lotus.com/dxl' version='8.5' maintenanceversion='3.0'
+ replicaid='C1257767004FA71B'>
+<noteinfo noteid='14e' unid='238E5CA2D1C72359C125776700503802' sequence='1'>
+<created><datetime dst='true'>20100721T163612,18+02</datetime></created>
+<modified><datetime dst='true'>20100722T084224,93+02</datetime></modified>
+<revised><datetime dst='true'>20100721T163612,62+02</datetime></revised>
+<lastaccessed><datetime dst='true'>20100722T084224,92+02</datetime></lastaccessed>
+<addedtofile><datetime dst='true'>20100722T084224,92+02</datetime></addedtofile></noteinfo>
+<updatedby><name>CN=Gernot Hummer/O=Pitagora</name></updatedby>
+<wassignedby><name>CN=Gernot Hummer/O=Pitagora</name></wassignedby>
+<item name='$AssistVersion'><datetime dst='true'>20100715T101411,74+02</datetime></item>
+<item name='$TITLE' sign='true'><text>Korrektur Pitagora</text></item>
+<item name='$AssistType' sign='true'><number>65426</number></item>
+<item name='$AssistLastRun' sign='true'>
+<rawitemdata type='400'>
+AAAAAAAAAAA=
+</rawitemdata></item>
+<item name='$AssistDocCount' sign='true'><number>0</number></item>
+<item name='$Comment' sign='true'><text/></item>
+<item name='$FlagsExt' sign='true'><text/></item>
+<item name='$AssistFlags' sign='true'><text>Es</text></item>
+<item name='$AssistTrigger'><text>4</text></item>
+<item name='$AssistInfo' sign='true'>
+<rawitemdata type='11'>
+AQAEAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+</rawitemdata></item>
+<item name='$AssistQuery' sign='true'>
+<rawitemdata type='f'>
+gQYAAAAA
+</rawitemdata></item>
+<item name='$AssistAction' sign='true'>
+<rawitemdata type='10'>
+gQKE/7oAAAAAALAAsAADACYABABGb3JtAQAVAFRyYW5zZmVyQ29uZmlndXJhdGlvbgADAAcADgAH
+AAkxUzJTM1MAAwASAAgARmlsZVBhdGi+AAMABwAQAAkACTBSMVMyUzNTAAMAFAAKAERiRmlsZVBh
+dGi+AAMABwAQAAkACTBSMVMyUzNTAAMAEAAGAFNlcnZlcr4AAwAHABAACQAJMFIxUzJTM1MAAAAI
+AGYAAwAHAAwABgAJMFJMMVM=
+</rawitemdata></item>
+<item name='$AssistAction_Ex' sign='true'>
+<rawitemdata type='14'>
+gQI=
+</rawitemdata></item>
+<item name='$Restricted' sign='true'><number>1</number></item>
+<item name='$Flags'><text>f3</text></item>
+<item name='$DesignerVersion'><text>8.5.2</text></item>
+<item name='$AssistRunInfo' summary='true'>
+<rawitemdata type='3'>
+BgAAAgAACABKAQAAAAAAAAUAAAAwAAAAAAAAAAAAAAAAAAAABgEAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAA7j8tAGF3JcEBAAAAuj4tAGF3JcH81iYAIXclwQAAAAAAAAAAAAAAAAAAAAAAAAAAU3RhcnRl
+ZCBydW5uaW5nIGFnZW50ICdLb3JyZWt0dXIgUGl0YWdvcmEnIG9uIDE1LjA3LjIwMTAgMTA6MTQ6
+MTQNClJ1bm5pbmcgb24gc2VsZWN0ZWQgZG9jdW1lbnRzOiAxIHRvdGFsDQpGb3VuZCAxIGRvY3Vt
+ZW50KHMpIHRoYXQgbWF0Y2ggc2VhcmNoIGNyaXRlcmlhDQoxIGRvY3VtZW50KHMpIHdlcmUgbW9k
+aWZpZWQgYnkgZm9ybXVsYQ0KRG9uZSBydW5uaW5nIGFnZW50ICdLb3JyZWt0dXIgUGl0YWdvcmEn
+IG9uIDE1LjA3LjIwMTAgMTA6MTQ6MTQNCgANCsb9X/zO4fai4STnATZ5IHytf0tklLsxKTrMZNU+
+MwF2ICE2tnLLfZc8z6JZoN09lIggXln0RxW9q7WOK4t2klK6e9bBtDpBE6Ix9D54PA2c+lzgCgoZ
+/vSCTEe3yNvbUqJqrCGZPHZLHj/nDavQFfKCK1/p1EmdJNtQB9MqoLwzT4LrnjUBlK5JN1kcRyQL
+flSgAx9V4o3BK3mbsUp/VhhIktBqw4Iml88e0NckfQcIAwzW68nIZ9v0uVc7rLhufofoEmNpOGDR
+PsNTawcXP7EbIPwCkjJsi079njEiZIZEtI2ZQtHOMvmPfqmECjL10S4cGl6nmX11ihue7mbgF0z4
+erWCTktt4ucu+xHEdZelS1ToWik/Usc9zIQbgKUVveTCJ55fGS5vHMplPTfeuTPRRulihzovgr6c
+U+/yFqwQlLOUYeB44AKtnB40qTGarnLd1ta0jG4yVetneVXF1paxmLM8CrsXY6dmamZT1IIooUt6
+PBit4iZuspsbKpcNue9PMf5021NF2V9W+BnY2RRHvQpEyypYIa0Wkyf37/5L1qT/i9XENOfKj7+I
+YrXgmzaMm4iYJ0sdsaLkAhWX/UY1GVovOpfvctvIoGRjp6MJQklSaWG3UQ0xh3OI4DUva27wLTws
+zFWl5X4JUEguoTl5GXvv8Xbe9ClioHSeAm/CUOAz8A7HIpUVKwPh9C0hdHrzH78GkX0+u6U12xlP
+F9Zc//DZvySBcCYUI/7sCbsTXvp903mV5Qh5QhNvM3kOIr6Ch0LHP4EgmpPIghMFf8O6jCxtuPew
++bNKSFEKtZYft68clA3gPmO88XSHktFEa51Fo54m0Gqu3C4TGzFIowtIYJUaPLfFkxneGg6Z/TuF
+WD8/RTEiPAO6fcBPXrIaXpYR
+</rawitemdata></item></note>
+

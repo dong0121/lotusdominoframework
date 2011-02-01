@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?><note class="filter" maintenanceversion="3.0" replicaid="C1257767004FA71B" version="8.5" xmlns="http://www.lotus.com/dxl">
+<noteinfo noteid="142" sequence="21" unid="1297CF713C61097AC1257767004FE1FD">
+<created><datetime dst="true">20100721T163231,97+02</datetime></created>
+<modified><datetime>20110127T104709,62+01</datetime></modified>
+<revised><datetime>20110127T104709,61+01</datetime></revised>
+<lastaccessed><datetime>20110127T104709,61+01</datetime></lastaccessed>
+<addedtofile><datetime dst="true">20100722T084224,88+02</datetime></addedtofile></noteinfo>
+<updatedby><name>CN=Gernot Hummer/O=Pitagora</name><name>CN=Sabine Oberleiter/O=Pitagora</name><name>CN=Gernot Hummer/O=Pitagora</name></updatedby>
+<wassignedby><name>CN=Gernot Hummer/O=Pitagora</name></wassignedby>
+<item name="$TITLE" sign="true"><text>com.pitagora.data.connectionfactory</text></item>
+<item name="$Flags"><text>s34Q</text></item>
+<item name="$PublicAccess" sign="true"><text>1</text></item>
+<item name="$Comment"><text>DATA: Factory for data connections</text></item>
+
+</note>

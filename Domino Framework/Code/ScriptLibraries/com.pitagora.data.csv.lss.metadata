@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?><note class="filter" maintenanceversion="3.0" replicaid="C1257767004FA71B" version="8.5" xmlns="http://www.lotus.com/dxl">
+<noteinfo noteid="1b6" sequence="24" unid="BA69FB0E58ECC99BC1257767004FCDD3">
+<created><datetime dst="true">20100721T163140,35+02</datetime></created>
+<modified><datetime>20110127T104709,12+01</datetime></modified>
+<revised><datetime>20110127T104709,11+01</datetime></revised>
+<lastaccessed><datetime>20110127T104709,11+01</datetime></lastaccessed>
+<addedtofile><datetime dst="true">20100722T084225,36+02</datetime></addedtofile></noteinfo>
+<updatedby><name>CN=Gernot Hummer/O=Pitagora</name><name>CN=Sabine Oberleiter/O=Pitagora</name><name>CN=Gernot Hummer/O=Pitagora</name></updatedby>
+<wassignedby><name>CN=Gernot Hummer/O=Pitagora</name></wassignedby>
+<item name="$TITLE" sign="true"><text>com.pitagora.data.csv</text></item>
+<item name="$Flags"><text>s34Q</text></item>
+<item name="$PublicAccess" sign="true"><text>1</text></item>
+<item name="$Comment"><text>DATA: CSV Data Connection implementation</text></item>
+
+</note>

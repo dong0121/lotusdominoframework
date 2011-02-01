@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?><note class="filter" maintenanceversion="3.0" replicaid="C1257767004FA71B" version="8.5" xmlns="http://www.lotus.com/dxl">
+<noteinfo noteid="1a6" sequence="12" unid="9A2D16B4403B73FCC125776700501708">
+<created><datetime dst="true">20100721T163447,76+02</datetime></created>
+<modified><datetime>20110127T104709,20+01</datetime></modified>
+<revised><datetime>20110127T104709,19+01</datetime></revised>
+<lastaccessed><datetime>20110127T104709,19+01</datetime></lastaccessed>
+<addedtofile><datetime dst="true">20100722T084225,32+02</datetime></addedtofile></noteinfo>
+<updatedby><name>CN=Gernot Hummer/O=Pitagora</name><name>CN=Sabine Oberleiter/O=Pitagora</name><name>CN=Gernot Hummer/O=Pitagora</name></updatedby>
+<wassignedby><name>CN=Gernot Hummer/O=Pitagora</name></wassignedby>
+<item name="$Flags"><text>s34Q</text></item>
+<item name="$PublicAccess" sign="true"><text>1</text></item>
+<item name="$TITLE" sign="true"><text>com.pitagora.binding.views.test</text></item>
+<item name="$DesignerVersion" sign="true"><text>8.5.2</text></item>
+<item name="$Comment"><text>example event binding for a view</text></item>
+
+</note>

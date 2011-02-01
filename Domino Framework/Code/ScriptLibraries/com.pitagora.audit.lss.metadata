@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?><note class="filter" maintenanceversion="3.0" replicaid="C1257767004FA71B" version="8.5" xmlns="http://www.lotus.com/dxl">
+<noteinfo noteid="372" sequence="4" unid="1010AFC55E0CA060C125779D001F609B">
+<created><datetime dst="true">20100913T074243,47+02</datetime></created>
+<modified><datetime>20110127T104709,26+01</datetime></modified>
+<revised><datetime>20110127T104709,25+01</datetime></revised>
+<lastaccessed><datetime>20110127T104709,25+01</datetime></lastaccessed>
+<addedtofile><datetime dst="true">20100913T075943,33+02</datetime></addedtofile></noteinfo>
+<updatedby><name>CN=Gernot Hummer/O=Pitagora</name><name>CN=Josef Prantauer/O=Pitagora</name><name>CN=Gernot Hummer/O=Pitagora</name><name>CN=Sabine Oberleiter/O=Pitagora</name><name>CN=Gernot Hummer/O=Pitagora</name></updatedby>
+<wassignedby><name>CN=Gernot Hummer/O=Pitagora</name></wassignedby>
+<item name="$TITLE" sign="true"><text>com.pitagora.audit</text></item>
+<item name="$Flags"><text>s34Q</text></item>
+<item name="$PublicAccess" sign="true"><text>1</text></item>
+<item name="$Comment"><text>AUDIT: Functionality for document change tracking</text></item>
+
+</note>

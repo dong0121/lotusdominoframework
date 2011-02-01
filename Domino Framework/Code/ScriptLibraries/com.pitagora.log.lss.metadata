@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?><note class="filter" maintenanceversion="3.0" replicaid="C1257767004FA71B" version="8.5" xmlns="http://www.lotus.com/dxl">
+<noteinfo noteid="16e" sequence="28" unid="3798808FF696A8F6C1257767004FC150">
+<created><datetime dst="true">20100721T163108,32+02</datetime></created>
+<modified><datetime>20110127T104708,62+01</datetime></modified>
+<revised><datetime>20110127T104708,61+01</datetime></revised>
+<lastaccessed><datetime>20110127T104708,61+01</datetime></lastaccessed>
+<addedtofile><datetime dst="true">20100722T084225,10+02</datetime></addedtofile></noteinfo>
+<updatedby><name>CN=Gernot Hummer/O=Pitagora</name><name>CN=Sabine Oberleiter/O=Pitagora</name><name>CN=Gernot Hummer/O=Pitagora</name></updatedby>
+<wassignedby><name>CN=Gernot Hummer/O=Pitagora</name></wassignedby>
+<item name="$TITLE" sign="true"><text>com.pitagora.log</text></item>
+<item name="$Flags"><text>s34Q</text></item>
+<item name="$PublicAccess" sign="true"><text>1</text></item>
+<item name="$Comment"><text>LOG: Standardized logging feature</text></item>
+
+</note>

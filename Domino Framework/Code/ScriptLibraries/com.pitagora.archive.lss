@@ -1,0 +1,221 @@
+'++LotusScript Development Environment:2:5:(Options):0:74
+%REM
+	Library com.pitagora.archive
+	Created Jul 15, 2010 by Gernot Hummer/Pitagora
+	Description: Comments for Library
+%END REM
+Option Public
+Option Declare
+Use "com.pitagora.data.notes"
+
+
+'++LotusScript Development Environment:2:5:(Forward):0:1
+Declare Class ArchivingConfig As BaseClass
+Declare Class ArchivingController As BaseClass
+
+'++LotusScript Development Environment:2:5:(Declarations):0:10
+Const PARENT_PREFIX = "[[PARENT:"
+Const PARENT_SUFFIX = "]]"
+%REM
+	Class ArchivingConfig
+	Description: Comments for Class
+%END REM
+Class ArchivingConfig As BaseClass
+	Private source As NotesConnection
+	Private target As NotesConnection
+	Private sourceView As NotesView
+	Private condition As Computation
+	Private subConfigs As ArrayList
+	Private computations As ArrayList
+	
+	%REM
+		Sub New
+		Description: Comments for Sub
+	%END REM
+	Public Sub New()
+		Set Me.subConfigs = New ArrayList()
+		Set Me.computations = New ArrayList()
+	End Sub
+	
+	
+	%REM
+		Sub setSource
+		Description: Comments for Sub
+	%END REM
+	Public Sub setSource(source As NotesConnection)
+		If Not source.hasError() Then
+			Set Me.source = source
+		End If
+	End Sub
+	
+	Public Function getSource() As NotesConnection
+		Set Me.getSource = Me.source
+	End Function
+	
+	%REM
+		Sub setTarget
+		Description: Comments for Sub
+	%END REM
+	Public Sub setTarget(target As NotesConnection)
+		If Not target.hasError() Then
+			Set Me.target = target
+		End If
+	End Sub
+	
+	Public Function getTarget() As NotesConnection
+		Set Me.getTarget = Me.target
+	End Function
+	
+	%REM
+		Sub setCondition
+		Description: Comments for Sub
+	%END REM
+	Public Sub setCondition(condition As Computation)
+		Set Me.condition = condition
+	End Sub
+	
+	%REM
+		Sub setSourceView
+		Description: Comments for Sub
+	%END REM
+	Public Sub setSourceView(viewName As String)
+		If Not Me.source Is Nothing Then
+			Set Me.sourceView = Me.source.getView(viewName)
+		End If
+	End Sub
+	
+	%REM
+		Sub addSubConfig
+		Description: Comments for Sub
+	%END REM
+	Public Sub addSubConfig(subConfig As ArchivingConfig)
+		Call Me.subConfigs.addObject(subConfig)
+	End Sub
+	
+	%REM
+		Sub addComputation
+		Description: Comments for Sub
+	%END REM
+	Public Sub addComputation(computation As Computation)
+		Call Me.computations.addObject(computation)
+	End Sub
+	
+	Public Function getSubConfigs() As ArrayList
+		Set Me.getSubConfigs = Me.subConfigs
+	End Function
+	
+	Public Function getComputations() As ArrayList
+		Set Me.getComputations = Me.computations
+	End Function
+	
+	Public Function getCondition() As Computation
+		Set Me.getCondition = Me.condition
+	End Function
+End Class
+%REM
+	Class ArchivingController
+	Description: Comments for Class
+	
+	For conditions dependent on parent document use following syntax
+	for including a field of the parent document: [[PARENT:FIELDNAME]]
+%END REM
+Class ArchivingController As BaseClass
+	Private aConfig As ArchivingConfig
+	Private pDoc As NotesDocument
+	
+	%REM
+		Sub New
+		Description: Comments for Sub
+	%END REM
+	Public Sub New(aConfig As ArchivingConfig)
+		Set Me.aConfig = aConfig
+	End Sub
+	
+	%REM
+		Sub setParentDoc
+		Description: Comments for Sub
+	%END REM
+	Public Sub setParentDoc(doc As NotesDocument)
+		Set Me.pDoc = doc
+	End Sub
+	
+	%REM
+		Sub run
+		Description: Comments for Sub
+	%END REM
+	Public Sub run()
+		Dim aDoc As NotesDocument
+		Dim tDoc As NotesDocument
+		Dim cond As Computation
+		
+		Set aDoc = Me.aConfig.getSource().getFirstDocument()
+		Set cond = Me.aConfig.getCondition()
+		While Not aDoc Is Nothing
+			
+			'Add parent values to condition if parent doc is available
+			If Not Me.pDoc Is Nothing Then
+				Call Me.insertParentValues(Me.pDoc, cond)
+			End If
+			
+			'Check whether condition is met
+			Call cond.compute(aDoc)
+			If CInt(cond.getResult()(0)) = FORMULA_TRUE Then
+				'Prepare target document by copying all items from the source
+				Set tDoc = Me.aConfig.getTarget().createDocument(aDoc)
+				'Compute all computations within the configuration.
+				ForAll computation In Me.aConfig.getComputations().toArray()
+					Call computation.compute(tDoc)
+					Call computation.commit(tDoc)
+				End ForAll
+				
+				'Commit the document to the database
+				If Me.aConfig.getTarget().commitDocument(tDoc) Then
+					'If commit was successful, delete the document in the source database
+					Call Me.aConfig.getSource().removeDocument(aDoc, True)
+				End If
+			End If
+			
+			'Process any sub configs
+			If Me.aConfig.getSubConfigs().getCount() > 0 Then
+				Dim aController As ArchivingController
+				Dim config As ArchivingConfig
+				
+				ForAll storedConfig In Me.aConfig.getSubConfigs().toArray()
+					'Type casting
+					Set config = storedConfig
+					
+					'Call nested archiving controller for config
+					Set aController = New ArchivingController(config)
+					Call aController.setParentDoc(aDoc)
+					Call aController.run()
+				End ForAll
+			End If
+			
+			Set aDoc = Me.aConfig.getSource().getNextDocument(aDoc)
+		Wend
+	End Sub
+	
+	%REM
+		Function insertParentValue
+		Description: Comments for Function
+	%END REM
+	Private Function insertParentValues(doc As NotesDocument, cond As Computation)
+		Dim prefix As String
+		Dim fieldName As String
+		Dim suffix As String
+		
+		While InStr(cond.getFormula(), PARENT_PREFIX) > 0
+			'splitting of formula to inject the value of the parent document item
+			prefix = StrLeft(cond.getFormula(), PARENT_PREFIX)
+			fieldName = StrLeft(StrRight(cond.getFormula(), PARENT_PREFIX), PARENT_SUFFIX)
+			suffix = StrRight(cond.getFormula(), PARENT_SUFFIX)
+			
+			'ensure double quotes
+			If Right(prefix, 1) <> {"} Then prefix = prefix & {"}
+			If Left(suffix, 1) <> {"} Then suffix = {"} & suffix
+			
+			'update formula
+			cond.setFormula(prefix & doc.GetItemValue(fieldName)(0) & suffix)
+		Wend 
+	End Function
+End Class

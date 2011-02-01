@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?><note class="filter" maintenanceversion="3.0" replicaid="C1257767004FA71B" version="8.5" xmlns="http://www.lotus.com/dxl">
+<noteinfo noteid="1d2" sequence="16" unid="F429F6B298D377FEC1257767004FFE16">
+<created><datetime dst="true">20100721T163343,90+02</datetime></created>
+<modified><datetime>20110127T104708,55+01</datetime></modified>
+<revised><datetime>20110127T104708,54+01</datetime></revised>
+<lastaccessed><datetime>20110127T104708,54+01</datetime></lastaccessed>
+<addedtofile><datetime dst="true">20100722T084225,42+02</datetime></addedtofile></noteinfo>
+<updatedby><name>CN=Gernot Hummer/O=Pitagora</name><name>CN=Sabine Oberleiter/O=Pitagora</name><name>CN=Gernot Hummer/O=Pitagora</name></updatedby>
+<wassignedby><name>CN=Gernot Hummer/O=Pitagora</name></wassignedby>
+<item name="$TITLE" sign="true"><text>com.pitagora.msoffice.word.pdf</text></item>
+<item name="$Flags"><text>s34Q</text></item>
+<item name="$PublicAccess" sign="true"><text>1</text></item>
+<item name="$Comment"><text>PDF: Automated PDF Printing for Word Documents</text></item>
+
+</note>

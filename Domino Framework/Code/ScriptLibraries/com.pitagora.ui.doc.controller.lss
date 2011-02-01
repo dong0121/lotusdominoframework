@@ -1,0 +1,230 @@
+'++LotusScript Development Environment:2:5:(Options):0:74
+%REM
+	Library com.pitagora.ui.controller
+	Created Jun 10, 2010 by Gernot Hummer/Pitagora
+	Description: Comments for Library
+%END REM
+Option Public
+Use "com.pitagora.util"
+Use "com.pitagora.ui.doc.logic"
+
+
+
+
+'++LotusScript Development Environment:2:5:(Forward):0:1
+Declare Class BaseDocumentController As BaseClass
+Declare Class BaseQueryEventListener As BaseClass
+Declare Class BasePostEventListener As BaseClass
+Declare Class BaseDocumentEventBinding As BaseClass
+
+'++LotusScript Development Environment:2:5:(Declarations):0:10
+%REM
+	Class BaseDocumentController
+	Description: This class is initialized by a BaseEventBinding and holds all
+	EventHandlers for a certain form.
+%END REM
+Class BaseDocumentController As BaseClass
+	Private session As NotesSession
+	Private currentDb As NotesDatabase
+	Private uiDoc As NotesUIDocument
+	Private queryListeners As HashMap
+	Private postListeners As HashMap
+	Private isNewDocument As Boolean
+	
+%REM
+		Sub New
+		@param source as NotesUIDocument, the current front end document
+		@param isNewDoc as Boolean, true if the front end document is a new document.
+		@param continue as Boolean, whether or not to continue the QueryOpen Event.
+%END REM
+	Public Sub New(source As NotesUIDocument, mode As Integer, isNewDoc As Variant, continue As Variant)
+		Set Me.session = New NotesSession()
+		Set Me.currentDb = Me.session.CurrentDatabase()
+		Set Me.uiDoc = source
+		Set Me.queryListeners = New HashMap()
+		Set Me.postListeners = New HashMap()
+	End Sub
+	
+	%REM
+		Sub addQueryListener
+		@param uiEvent as String, the name of the query event on the form
+		@param listener as BaseQueryEventListener, the listener business logic
+	%END REM
+	Public Sub addQueryListener(uiEvent As String, logic As BaseQueryEventLogic)
+		If Not Me.queryListeners.containsKey(uiEvent) Then
+			Dim listener As New BaseQueryEventListener()
+			Call Me.queryListeners.putValue(uiEvent, listener)
+			Call listener.initialize(Me.uiDoc, uiEvent)
+		End If
+		
+		Call Me.queryListeners.getValue(uiEvent).addLogic(logic)
+	End Sub
+	
+	%REM
+		Sub addPostListener
+		@param uiEvent as String, the name of the query event on the form
+		@param listener as BasePostEventListener, the listener business logic
+	%END REM
+	Public Sub addPostListener(uiEvent As String, logic As BasePostEventLogic)
+		If Not Me.postListeners.containsKey(uiEvent) Then
+			Dim listener As New BasePostEventListener()
+			Call Me.postListeners.putValue(uiEvent, listener)
+			Call listener.initialize(Me.uiDoc, uiEvent)
+		End If
+		
+		Call Me.postListeners.getValue(uiEvent).addLogic(logic)
+	End Sub
+End Class
+
+
+
+%REM
+	Class BaseQueryEventListener
+	Description: Comments for Class
+%END REM
+Class BaseQueryEventListener As BaseClass
+	Private logic As ArrayList
+	
+	%REM
+		Sub New
+		Description: Constructor
+	%END REM
+	Public Sub New
+		Set Me.logic = New ArrayList()
+	End Sub
+	
+	%REM
+		Sub initialize
+		@param source as NotesUIDocument, the current front end document
+	%END REM
+	Public Sub initialize(Source As NotesUIDocument, EventType As String)
+		
+		Select Case EventType
+			Case "QueryModeChange"
+				On Event QueryModeChange From Source Call listen
+			Case "QueryRecalc"
+				On Event QueryRecalc From Source Call listen
+			Case "QuerySave"
+				On Event QuerySave From Source Call listen
+			Case "QuerySend"
+				On Event QuerySend From Source Call listen
+			Case "QueryClose"
+				On Event QueryClose From Source Call listen
+			Case Else
+				Call Client_RaiseError("The handed in event is not a known 'Query' Event for a Document.")
+		End Select
+	End Sub
+	
+	%REM
+		Sub addLogic
+		Description: Comments for Sub
+	%END REM
+	Public Sub addLogic(logic As BaseQueryEventLogic)
+		Call Me.logic.addObject(logic)
+	End Sub
+	
+	%REM
+		Sub listen
+		Description: The method stub for the listener
+	%END REM
+	Public Sub listen(Source As NotesUIDocument, Continue As Variant)
+		ForAll singleLogic In Me.logic.toArray()
+			Call singleLogic.run(Source, Continue)
+		End ForAll
+	End Sub
+End Class
+
+
+%REM
+	Class BasePostEventListener
+	Description: Comments for Class
+%END REM
+Class BasePostEventListener As BaseClass
+	Private logic As ArrayList
+	
+	%REM
+		Sub New
+		Description: Constructor
+	%END REM
+	Public Sub New
+		Set Me.logic = New ArrayList()
+	End Sub
+	
+	%REM
+		Sub initialize
+		@param source as NotesUIDocument, the current front end document
+		@param EventType as String, the type of event on the front end document
+	%END REM
+	Public Sub initialize(Source As NotesUIDocument, EventType As String)
+		
+		Select Case EventType
+			Case "PostOpen"
+				On Event PostOpen From Source Call listen
+			Case "PostModeChange"
+				On Event PostModeChange From Source Call listen
+			Case "PostRecalc"
+				On Event PostRecalc From Source Call listen
+			Case "PostSave"
+				On Event PostSave From Source Call listen
+			Case "PostSend"
+				On Event PostSend From Source Call listen
+			Case Else
+				Call Client_RaiseError("The handed in event is not a known 'Post' Event for a Document.")
+		End Select
+	End Sub
+	
+	%REM
+		Sub addLogic
+		Description: Comments for Sub
+	%END REM
+	Public Sub addLogic(logic As BasePostEventLogic)
+		Call Me.logic.addObject(logic)
+	End Sub
+	
+	%REM
+		Sub listen
+		Description: The method stub for the listener
+	%END REM
+	Public Sub listen(Source As NotesUIDocument)
+		ForAll singleLogic In Me.logic.toArray()
+			Call singleLogic.run(Source)
+		End ForAll
+	End Sub
+End Class
+
+
+%REM
+	Class BaseDocumentEventBinding
+	Description: Comments for Class
+%END REM
+Class BaseDocumentEventBinding As BaseClass
+	Private docController As BaseDocumentController
+	
+	%REM
+		Sub init
+		Description: Comments for Sub
+	%END REM
+	Public Sub initialize(Source As  NotesUIDocument, Mode As Integer, IsNewDoc As Variant, Continue As Variant)
+		
+	End Sub
+	
+	%REM
+		Sub initController
+		Description: Call this method from the innitialize method in the EventBinding
+		@param Source as NotesUIDocument
+		@param Mode as Integer, whether the document is in edit mode or not
+		@param IsNewDoc as Variant, true if the document is new
+		@param Continue as Variant, False will stop further processing
+	%END REM
+	Public Sub initController(Source As  NotesUIDocument, Mode As Integer, IsNewDoc As Variant, Continue As Variant)
+		Set Me.docController = New BaseDocumentController(Source, Mode, IsNewDoc, Continue)
+	End Sub
+	
+	%REM
+		Function getDocumentController
+		@return The document controller in this event binding
+	%END REM
+	Public Function getDocumentController() As BaseDocumentController
+		Set Me.getDocumentController = Me.docController
+	End Function
+End Class

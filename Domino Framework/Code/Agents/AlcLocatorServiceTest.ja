@@ -1,0 +1,40 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!DOCTYPE agent SYSTEM 'xmlschemas/domino_8_5_3.dtd'>
+<agent name='AlcLocatorServiceTest' xmlns='http://www.lotus.com/dxl' version='8.5'
+ maintenanceversion='3.0' replicaid='C1257767004FA71B' hide='v3' publicaccess='false'
+ designerversion='8.5.2' comment='TEST Alcatel Locator Service'>
+<noteinfo noteid='266' unid='24F04E1D7874DC01C12577680041D6E9' sequence='3'>
+<created><datetime dst='true'>20100722T135908,57+02</datetime></created>
+<modified><datetime dst='true'>20100722T141144,31+02</datetime></modified>
+<revised><datetime dst='true'>20100722T140046,11+02</datetime></revised>
+<lastaccessed><datetime dst='true'>20100722T141144,30+02</datetime></lastaccessed>
+<addedtofile><datetime dst='true'>20100722T141144,30+02</datetime></addedtofile></noteinfo>
+<updatedby><name>CN=Gernot Hummer/O=Pitagora</name></updatedby>
+<wassignedby><name>CN=Gernot Hummer/O=Pitagora</name></wassignedby>
+<designchange><datetime dst='true'>20100722T140046,09+02</datetime></designchange>
+<trigger type='actionsmenu'/>
+<documentset type='selected'/><code event='action'><javaproject class='JavaAgent.class'
+ codepath='C:\Firma\IBM\Lotus\Notes\Data'><java name='JavaAgent.java'>import lotus.domino.*;
+
+public class JavaAgent extends AgentBase {
+
+    public void NotesMain() {
+
+      try {
+          Session session = getSession();
+          AgentContext agentContext = session.getAgentContext();
+
+          // (Your code goes here)
+          
+
+      } catch(Exception e) {
+          e.printStackTrace();
+       }
+   }
+}</java>
+<sharedlibraryref name='AlcServiceLocator'/></javaproject></code>
+<rundata processeddocs='0' exitcode='0'>
+<agentmodified><datetime dst='true'>20100722T140046,09+02</datetime></agentmodified></rundata>
+<item name='$JavaCompilerSource'><text>1.3</text></item>
+<item name='$JavaCompilerTarget'><text>1.2</text></item></agent>
+
