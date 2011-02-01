@@ -1,0 +1,129 @@
+'++LotusScript Development Environment:2:5:(Options):0:74
+%REM
+	Library com.pitagora.msoffice.word.pdf
+	Created Jul 12, 2010 by Gernot Hummer/Pitagora
+	Description: Comments for Library
+%END REM
+Option Public
+Option Declare
+Use "com.pitagora.util"
+
+'++LotusScript Development Environment:2:5:(Forward):0:1
+Declare Class PDFFactory As BaseClass
+
+'++LotusScript Development Environment:2:5:(Declarations):0:10
+Const BULLZIP_PDF_PRINTER = "Bullzip PDF Printer"
+Const BULLZIP_INI_DIRECTORY = "PDF Writer\Bullzip PDF Printer"
+Const BULLZIP_INI_FILENAME = "global.ini"
+Const PDF_FILENAME = "Angebot.pdf"
+Const PRINTER_WARMUP_TIME = 3
+Const PRINTER_WAIT_LOOP = 1
+%REM
+	Class PDFFactory
+	Description: Comments for Class
+%END REM
+Class PDFFactory As BaseClass
+	Private Sys As System
+	Private wordApp As Variant
+	
+	%REM
+		Sub initMSWord
+		Description: Comments for Sub
+	%END REM
+	Public Sub initMSWord()
+		Set Me.sys = New System()
+		Set Me.wordApp = CreateObject("Word.Application")
+		'Me.wordApp.Visible = False
+	End Sub
+	
+	%REM
+		Sub renderMSWordToPDF
+		Description: Comments for Sub
+	%END REM
+	Public Function renderMSWordToPDF(embObj As NotesEmbeddedObject, targetFileName As String) As String
+		On Error GoTo ERROR_HANDLER
+		
+		Dim pathName As String
+		Dim wordDoc As Variant
+		
+		If Not embObj Is Nothing Then
+			'Build path to extract file attachment to
+			pathName = Me.sys.getTempFolder()
+			If Right(pathName, 1) <> "\" Then pathName = pathName & "\"
+			pathName = pathName & embObj.Name
+			
+			'extract file attachment
+			Call embObj.ExtractFile(pathName)
+			
+			'prepare the bullzip pdf printer
+			targetFileName = Me.initPDFPrinter(targetFileName)
+			
+			'open actual document
+			Call Me.wordApp.Documents.Open(pathName)
+			
+			'Printing of document
+			Me.wordApp.ActivePrinter = BULLZIP_PDF_PRINTER
+			Call Me.wordApp.PrintOut()
+			
+			'MsgBox targetFileName
+			
+			'Give the printer time to start its job
+			Sleep PRINTER_WARMUP_TIME
+			While Not Me.sys.isFileAvailable(targetFileName)
+				Sleep PRINTER_WAIT_LOOP
+				Print "Waiting for PDF Printer to complete..."
+			Wend
+			
+			'Close MS Word automation
+			Call Me.wordApp.Quit()
+			
+			'Call Me.sys.postToShell(targetFileName)
+			Me.renderMSWordToPDF = targetFileName
+		End If
+		Exit Function
+		
+ERROR_HANDLER:
+		Dim bError As New BaseError(ERROR_TITLE, ERROR_MSWORD_PDF)
+		Call Me.getErrorCollection().addError(bError)
+		Exit Function
+	End Function
+	
+	%REM
+		Sub initPDFPrinter
+		Description: Comments for Sub
+	%END REM
+	Public Function initPDFPrinter(targetFileName As String) As String
+		Dim iniDir As String
+		Dim tempDir As String
+		Dim fileNum As Integer
+		
+		If LCase(Right(targetFileName, 4)) <> ".pdf" Then targetFileName = targetFileName & ".pdf" 
+		
+		iniDir = Me.sys.getProgramDataFolder()
+		If Right(iniDir, 1) <> "\" Then iniDir = iniDir & "\"
+		iniDir = iniDir & BULLZIP_INI_DIRECTORY & "\" & BULLZIP_INI_FILENAME
+		
+		tempDir = Me.sys.getTempFolder()
+		If Right(tempDir, 1) <> "\" Then tempDir = tempDir & "\"
+		
+		If Me.sys.fileExists(iniDir) Then Kill iniDir
+		fileNum = FreeFile()
+		
+		Open iniDir For Output As #fileNum
+		
+		'Write actual iniDir
+		Print #fileNum, "[PDF Printer]"
+		Print #fileNum, "Output=" & tempDir & targetFileName
+		Print #fileNum, "DisableOptionDialog=yes"
+		Print #fileNum, "ConfirmOverwrite=no"
+		Print #fileNum, "ShowSaveAs=never"
+		Print #fileNum, "ShowSettings=never"
+		Print #fileNum, "ShowPDF=no"
+		Print #fileNum, "RememberLastFileName=no"
+		Print #fileNum, "RememberLastFolderName=no"
+	
+		Close #fileNum
+		
+		Me.initPDFPrinter = tempDir & targetFileName
+	End Function
+End Class

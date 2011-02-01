@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?><note class="filter" maintenanceversion="3.0" replicaid="C1257767004FA71B" version="8.5" xmlns="http://www.lotus.com/dxl">
+<noteinfo noteid="1c2" sequence="13" unid="CFF67702CD8AF340C125776700501074">
+<created><datetime dst="true">20100721T163430,92+02</datetime></created>
+<modified><datetime>20110127T104708,08+01</datetime></modified>
+<revised><datetime>20110127T104708,07+01</datetime></revised>
+<lastaccessed><datetime>20110127T104708,07+01</datetime></lastaccessed>
+<addedtofile><datetime dst="true">20100722T084225,39+02</datetime></addedtofile></noteinfo>
+<updatedby><name>CN=Gernot Hummer/O=Pitagora</name><name>CN=Sabine Oberleiter/O=Pitagora</name><name>CN=Gernot Hummer/O=Pitagora</name></updatedby>
+<wassignedby><name>CN=Gernot Hummer/O=Pitagora</name></wassignedby>
+<item name="$Flags"><text>s34Q</text></item>
+<item name="$PublicAccess" sign="true"><text>1</text></item>
+<item name="$TITLE" sign="true"><text>com.pitagora.ui.view.logic</text></item>
+<item name="$DesignerVersion" sign="true"><text>8.5.2</text></item>
+<item name="$Comment"><text>EVENT: Basic business logic containers for view event handling</text></item>
+
+</note>

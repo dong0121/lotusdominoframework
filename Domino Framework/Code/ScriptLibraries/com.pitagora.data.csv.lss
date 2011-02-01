@@ -1,0 +1,182 @@
+'++LotusScript Development Environment:2:5:(Options):0:74
+%REM
+	Library com.pitagora.data.csv
+	Created Jul 14, 2010 by Gernot Hummer/Pitagora
+	Description: Comments for Library
+%END REM
+Option Public
+Option Declare
+Use "com.pitagora.data"
+
+
+'++LotusScript Development Environment:2:5:(Forward):0:1
+Declare Class CSVConnection As DataConnection
+
+'++LotusScript Development Environment:2:5:(Declarations):0:10
+'file access modes
+Const FILEMODE_READ = "READ"
+Const FILEMODE_WRITE = "WRITE"
+%REM
+	Class CSVConnection
+	Description: Comments for Class
+%END REM
+Class CSVConnection As DataConnection
+	Private fileStream As NotesStream
+	Private filePath As String
+	Private fileNum As Integer
+	Private fileMode As String
+	Private separator As String
+	Private quotation As String
+	Private sys As System
+	
+	%REM
+		Sub New
+		Description: Comments for Sub
+	%END REM
+	Public Sub New(sourceName As String)
+		
+	End Sub
+	
+	%REM
+		Sub init
+		Description: Comments for Sub
+	%END REM
+	Public Sub initialize(filePath As String, mode As String, separator As String, quotation As String)
+		Set Me.sys = New System()
+		Me.filePath = filePath
+		Me.separator = separator
+		Me.quotation = quotation
+		
+		If mode = FILEMODE_READ Or mode = FILEMODE_WRITE Then
+			Me.fileMode = mode
+		Else
+			Me.fileMode = FILEMODE_READ
+		End If
+		
+		If Me.fileMode = FILEMODE_READ And Not Me.sys.fileExists(Me.filePath) Then
+			Me.init = False
+		Else
+			Me.init = True
+		End If
+	End Sub
+	
+	%REM
+		Function openConnection
+		Description: Comments for Function
+	%END REM
+	Public Function openConnection() As Boolean
+		Dim session As New NotesSession
+		Set Me.fileStream = session.CreateStream()
+		
+		Me.fileNum = FreeFile()
+		
+		If Me.init Then
+			Call Me.fileStream.Open(Me.filePath)
+			Me.openConnection = True
+			Me.opn = True
+			Me.endOfFile = False
+		End If
+		Exit Function
+		
+ERROR_HANDLER:
+		Dim bError As New BaseError(ERROR_TITLE, ERROR_FILEACCESS & "(" & Me.filePath & " | Mode: " & Me.fileMode & ")")
+		Call Me.getErrorCollection().addError(bError)
+		Me.openConnection = False
+		Me.opn = False
+		Exit Function
+	End Function
+	
+	%REM
+		Function closeConnection
+		Description: Comments for Function
+	%END REM
+	Public Function closeConnection() As Boolean
+		If Me.opn Then 
+			Call Me.fileStream.Close()
+			Me.opn = False
+		End If
+		Me.closeConnection = True
+	End Function
+	
+	Public Function getFirstRecord() As DataRecord
+		If Me.opn Then
+			Call Me.fileStream.Close()
+			Call Me.fileStream.Open(Me.filePath)
+			Set Me.getFirstRecord = Me.buildDataRecord(Me.fileStream.ReadText(STMREAD_LINE, EOL_CRLF))
+		Else
+			Dim bError As New BaseError(ERROR_TITLE, ERROR_CONNECTION_NOTOPEN)
+			Call Me.getErrorCollection().addError(bError)
+		End If
+	End Function
+	
+	Public Function getNextRecord() As DataRecord
+		If Me.opn Then
+			Set Me.getNextRecord = Me.buildDataRecord(Me.fileStream.ReadText(STMREAD_LINE, EOL_CRLF))
+		Else
+			Dim bError As New BaseError(ERROR_TITLE, ERROR_CONNECTION_NOTOPEN)
+			Call Me.getErrorCollection().addError(bError)
+		End If
+	End Function
+	
+	%REM
+		Function buildDataRecord
+		Description: Comments for Function
+	%END REM
+	Private Function buildDataRecord(csvRecord As String) As DataRecord
+		Dim itemConfig As DataItemConfig
+		Dim itemValue As String
+		Dim item As BaseClass
+		Dim bError As BaseError
+		
+		If Not Me.config Is Nothing Then
+			Set Me.buildDataRecord = New DataRecord(Me.config)
+
+			ForAll itemName In Me.config.getRecordConfig().keySet()
+				Set itemConfig = Me.config.getItemConfig(CStr(itemName))
+				itemValue = StrToken(csvRecord, Me.separator, itemConfig.getItemPos())
+				
+				Select Case itemConfig.getItemType()
+					Case ITEMTYPE_STRING
+						Set item = New BaseString(itemValue)
+					Case ITEMTYPE_INTEGER
+						Set item = New BaseInteger(CInt(itemValue))
+					Case ITEMTYPE_LONG
+						Set item = New BaseSingle(CLng(itemValue))
+					Case ITEMTYPE_SINGLE
+						Set item = New BaseSingle(CLng(itemValue))
+					Case ITEMTYPE_DOUBLE
+						Set item = New BaseDouble(CDbl(itemValue))
+					Case ITEMTYPE_CURRENCY
+						Set item = New BaseCurrency(CCur(itemValue))
+					Case ITEMTYPE_BOOLEAN
+						Set item = New BaseBoolean(CBool(itemValue))
+					Case Else
+						Set item = New BaseString(CStr(itemValue))
+				End Select
+				
+				Call Me.buildDataRecord.addValue(CStr(itemName), item)
+			End ForAll
+		Else
+			Set bError = New BaseError(ERROR_TITLE, ERROR_NOCONFIG)
+			Call Me.getErrorCollection().addError(bError)
+		End If
+		Exit Function
+		
+ERROR_HANDLER:
+		Set bError = New BaseError(ERROR_TITLE, ERROR_DATACONVERSION & Error)
+		Call Me.getErrorCollection().addError(bError)
+		Exit Function
+	End Function
+	
+	%REM
+		Function isEndOfSource
+		Description: Comments for Function
+	%END REM
+	Public Function isEndOfSource() As Boolean
+		If Me.opn Then
+			Me.isEndOfSource = Me.fileStream.IsEOS()
+		Else
+			Me.isEndOfSource = True
+		End If
+	End Function
+End Class

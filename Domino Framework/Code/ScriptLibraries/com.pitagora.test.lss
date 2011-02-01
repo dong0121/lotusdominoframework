@@ -1,0 +1,345 @@
+'++LotusScript Development Environment:2:5:(Options):0:74
+%REM
+	Library com.pitagora.test
+	Created May 12, 2010 by Gernot Hummer/Pitagora
+
+	THIS LIBRARY IS PROVIDED ON AN AS IS BASIS. THE CREATOR OF THIS
+	LIBRARY CANNOT BE HELD RESPONSIBLE FOR ANY DAMAGE THAT MAY RESULT
+	IN THE USE OR MISUSE OF THIS LIBRARY.
+	
+	(c) PITAGORA INFORMATIONSMANAGEMENT GMBH, 2010
+	ALL RIGHTS RESERVED. UNAUTHORIZED USE AND/OR COPYING IS PROHIBITED
+	
+	IF YOU WANT TO LICENSE THIS LIBRARY FOR USE IN YOUR OWN PROJECT
+	PLEASE CONTACT THE CREATOR:
+	
+	PITAGORA INFORMATIONSMANAGEMENT GMBH,
+	OLYMPIASTRASSE 17
+	A-6020 INNSBRUCK
+	PHONE: 0043 512 586 765
+	FAX:   0043 512 586 765 - 33
+	MAIL:  office@pitagora.at
+%END REM
+Option Public
+Option Declare
+Use "com.pitagora.log"
+Use "com.pitagora.event"
+Use "com.pitagora.ui.doc.controller"
+Use "com.pitagora.file"
+Use "com.pitagora.gedys"
+
+'++LotusScript Development Environment:2:5:(Forward):0:1
+Declare Class BaseTest As BaseClass
+Declare Class TestArrayList As BaseTest
+Declare Class TestHashMap As BaseTest
+Declare Class TestBaseClass As BaseTest
+Declare Class TestEventBus As BaseTest
+Declare Class TestEventListener As BaseEventListener
+Declare Class TestLogging As BaseTest
+Declare Class TestFile As BaseTest
+Declare Class GedysSyncTest As BaseTest
+Declare Public Sub Test_run()
+
+'++LotusScript Development Environment:2:5:(Declarations):0:10
+
+
+
+%REM
+	Class BaseTest
+	Description: Comments for Class
+%END REM
+Class BaseTest As BaseClass
+	
+%REM
+		Sub New
+		Description: Comments for Sub
+%END REM
+	Public Sub New
+		
+	End Sub
+	
+%REM
+		Sub run
+		Description: Comments for Sub
+%END REM
+	Public Sub run()
+		
+	End Sub
+End Class
+
+
+%REM
+	Class Test
+	Description: Comments for Class
+%END REM
+Class TestArrayList As BaseTest
+	Private myName As String
+	
+%REM
+		Sub New
+		Description: Comments for Sub
+%END REM
+	Public Sub New(myTName As String)
+		Me.myName = myTName
+	End Sub
+	
+%REM
+		Sub Run
+		Description: Comments for Sub
+%END REM
+	Public Sub Run()
+		Dim testObj As New BaseTest()
+		Dim aList As New ArrayList()
+		Dim array As Variant
+		
+		Call aList.addObject(testObj)
+		Call aList.removeObject(testObj)
+		array = aList.toArray()
+	End Sub
+End Class
+
+%REM
+	Class TestHashMap
+	Description: Comments for Class
+%END REM
+Class TestHashMap As BaseTest
+%REM
+		Sub New
+		Description: Comments for Sub
+%END REM
+	Public Sub New
+		
+	End Sub
+	
+%REM
+		Sub Run
+		Description: Comments for Sub
+%END REM
+	Public Sub Run()
+		Dim test As New BaseTest()
+		Dim hMap As New HashMap()
+		Dim key As String
+		
+		key = "MeinObjekt"
+		
+		Call hMap.putValue(key, test)
+		If hMap.containsKey(key) Then Msgbox "Hurra, Element gefunden!"
+		Call hMap.removeValue(key)
+	End Sub
+End Class
+
+
+%REM
+	Class TestBaseClass
+	Description: Comments for Class
+%END REM
+Class TestBaseClass As BaseTest
+%REM
+		Sub New
+		Description: Comments for Sub
+%END REM
+	Public Sub New
+		
+	End Sub
+	
+%REM
+		Sub run
+		Description: Comments for Sub
+%END REM
+	Public Sub run()
+		Dim msg As String
+		Dim br As String
+		
+		br = Chr(10) & Chr(13)
+		msg = "Class: " & Me.getClass() & br & "ObjUNID: " & Me.getObjectUNID()
+		Msgbox msg
+	End Sub
+End Class
+%REM
+	Class TestEventBus
+	Description: Comments for Class
+%END REM
+Class TestEventBus As BaseTest
+%REM
+		Sub run
+		Description: Comments for Sub
+%END REM
+	Public Sub run()
+		Dim eBus As Variant
+		Dim ebFactory As New EventBusFactory()
+		Dim bEvent As New BaseEvent(Me, "TestEvent")
+		
+		Set eBus = ebFactory.getBus()
+		Call eBus.fire(bEvent)
+	End Sub
+End Class
+
+%REM
+	Class TestEventListener
+	Description: Comments for Class
+%END REM
+Class TestEventListener As BaseEventListener
+	Private eBus As Variant
+	
+%REM
+		Sub New
+		Description: Comments for Sub
+%END REM
+	Public Sub New
+		Dim ebFactory As New EventBusFactory
+		Set Me.eBus = ebFactory.getBus()
+	End Sub
+	
+%REM
+		Sub listen
+		Description: Comments for Sub
+%END REM
+	Public Sub listen(bEvent As BaseEvent)
+		Msgbox "Listened To: " & bEvent.getName()
+	End Sub
+End Class
+
+
+%REM
+	Class TestLogging
+	Description: Comments for Class
+%END REM
+Class TestLogging As BaseTest
+	%REM
+		Sub New
+		Description: Comments for Sub
+	%END REM
+	Public Sub New
+		
+	End Sub
+	
+	%REM
+		Sub run
+		Description: Comments for Sub
+	%END REM
+	Public Sub run()
+		Dim logger As New Logger()
+		Dim lEntry As New LogEntry("Test Entry")
+		Dim lCol As New LogEntryCollection
+		
+		Call lCol.addObject(lEntry)
+		Call logger.init()
+		Call logger.commit(lCol)
+	End Sub
+End Class
+
+
+
+%REM
+	Class FileTest
+	Description: Comments for Class
+%END REM
+Class TestFile As BaseTest
+
+	%REM
+		Sub run
+		Description: Comments for Sub
+	%END REM
+	Public Sub run()	
+		Dim sys As New System()
+		Dim logger As New Logger()
+		Dim lCol As New LogEntryCollection()
+		Dim dContent As New DirectoryContent()
+		
+		Call dContent.getKnownExtensionsList().addExtension(".rtf")
+		Call dContent.readBaseDirectory("C:\Temp", lCol)
+		'Call dContent.clear()
+		
+		If lCol.getCount() > 0 Then
+			Call logger.init()
+			If logger.isConnected() Then Call logger.commit(lCol)
+		End If
+	End Sub
+End Class
+%REM
+	Class GedysSyncTest
+	Description: Comments for Class
+%END REM
+Class GedysSyncTest As BaseTest
+	%REM
+		Sub run
+		Description: Comments for Sub
+	%END REM
+	Public Sub run()
+		Dim session As New NotesSession
+		Dim contactsDb As NotesDatabase
+		
+		Set contactsDb = session.GetDatabase("atpisld1/Pitagora", "Applikationen\GedysIntraware7\contacts.nsf")
+		Call createDataSyncRequest(contactsDb.Server, "Applikationen\GedysIntraware7\gedbset.nsf", contactsDb.FilePath, contactsDb.Title, "TEST", True)
+	End Sub
+End Class
+'++LotusScript Development Environment:2:2:Test_run:6:8
+
+%REM
+	Sub Test_run
+	Description: Comments for Sub
+%END REM
+Public Sub Test_run()
+	Dim test As BaseTest
+	
+	%REM
+	'Test BaseClass
+	Set test = New TestBaseClass
+	Call test.run()
+	
+	'Test ArrayList
+	Set test = New TestArrayList("Blabla")
+	Call test.run()
+	
+	'Test HashMap
+	Set test = New TestHashMap()
+	Call test.run()
+	
+	'Test EventBus
+	Set test = New TestEventBus()
+	Call test.run()
+	%END REM
+		
+	'Test Error
+	Client_raiseError("Test")
+	
+	'Test Logger
+	'Set test = New TestLogging()
+	'Call test.run()
+
+	
+	'Test Directory Content
+	'Set test = New TestFile()
+	'Call test.run()
+	
+	'Gedys Data Sync Creation Test
+	'Set test = New GedysSyncTest()
+	'Call test.run
+End Sub
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

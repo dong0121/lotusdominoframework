@@ -1,0 +1,78 @@
+'++LotusScript Development Environment:2:5:(Options):0:74
+%REM
+	Library com.pitagora.search
+	Created Jun 29, 2010 by Gernot Hummer/Pitagora
+	Description: Comments for Library
+%END REM
+Option Public
+Option Declare
+
+Use "com.pitagora"
+
+'++LotusScript Development Environment:2:5:(Forward):0:1
+Declare Class BaseSearch As BaseClass
+
+'++LotusScript Development Environment:2:5:(Declarations):0:10
+Const SPOOFKEY = "~~*~~SPOOF~~*~~"
+%REM
+	Class BaseReminder
+	Description: This class is used by the BaseReminderController for sending info mails 
+	to offers and calculations
+%END REM
+Class BaseSearch As BaseClass
+	Private session As NotesSession
+	Private searchString As String
+	Private resultSet As NotesDocumentCollection
+	
+	%REM
+		Sub New
+		Description: Constructor. Creates a first result set.
+	%END REM
+	Public Sub New(search As String)
+		Me.searchString = search
+		Set Me.session = New NotesSession
+		Set Me.resultSet = Me.session.CurrentDatabase.Search(Me.searchString, Nothing, 0)
+	End Sub
+	
+	%REM
+		Sub trimResult
+		Description: Function to refine the result set.
+	%END REM
+	Public Sub trimResult(itemName As String, itemValue As Variant, exactMatch As Boolean)
+		Dim newResultSet As NotesDocumentCollection
+		Dim doc As NotesDocument
+		
+		If Me.resultSet.Count > 0 Then
+			Set newResultSet = Me.session.CurrentDatabase.search(SPOOFKEY, Nothing, 0)
+			Set doc = Me.resultSet.GetFirstDocument
+			While Not doc Is Nothing
+				ForAll value In doc.GetItemValue(itemName)
+					'exact match is direct comparison
+					If exactMatch Then
+						If value = itemValue And Not newResultSet.Contains(doc) Then
+							Call newResultSet.AddDocument(doc)
+						End If
+					Else
+						'non exact match is checking for occurence in value
+						If InStr(LCase(CStr(value)), LCase(CStr(itemValue))) > 0 Then
+							Call newResultSet.AddDocument(doc)
+						End If
+					End If
+				End ForAll
+				Set doc = Me.resultSet.GetNextDocument(doc)
+			Wend
+		End If
+		Set Me.resultSet = newResultSet
+	End Sub
+	
+	%REM
+		Getters and Setters
+	%END REM
+	Public Function getSearchString As String
+		Me.getSearchString = Me.searchString
+	End Function
+	
+	Public Function getResultSet As NotesDocumentCollection
+		Set Me.getResultSet = Me.resultSet
+	End Function
+End Class

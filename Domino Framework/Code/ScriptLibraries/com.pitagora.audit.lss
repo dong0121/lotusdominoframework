@@ -1,0 +1,158 @@
+'++LotusScript Development Environment:2:5:(Options):0:74
+%REM
+	Library com.pitagora.audit
+	Created Sep 9, 2010 by Gernot Hummer/Pitagora
+	
+	THIS LIBRARY IS PROVIDED ON AN AS IS BASIS. THE CREATOR OF THIS
+	LIBRARY CANNOT BE HELD RESPONSIBLE FOR ANY DAMAGE THAT MAY RESULT
+	IN THE USE OR MISUSE OF THIS LIBRARY.
+	
+	(c) PITAGORA INFORMATIONSMANAGEMENT GMBH, 2010
+	ALL RIGHTS RESERVED. UNAUTHORIZED USE AND/OR COPYING IS PROHIBITED
+	
+	IF YOU WANT TO LICENSE THIS LIBRARY FOR USE IN YOUR OWN PROJECT
+	PLEASE CONTACT THE CREATOR:
+	
+	PITAGORA INFORMATIONSMANAGEMENT GMBH,
+	OLYMPIASTRASSE 17
+	A-6020 INNSBRUCK
+	PHONE: 0043 512 586 765
+	FAX:   0043 512 586 765 - 33
+	MAIL:  office@pitagora.at
+%END REM
+Option Public
+Option Declare
+Use "com.pitagora.util"
+
+
+'++LotusScript Development Environment:2:5:(Forward):0:1
+Declare Class AuditTrail As BaseClass
+
+'++LotusScript Development Environment:2:5:(Declarations):0:10
+Const AUDIT_ITEM_SUFFIX = "OLD"
+Const AUDIT_ITEM = "$Audit"
+%REM
+	Class AuditTrail
+	Description: Comments for Class
+%END REM
+Class AuditTrail As BaseClass
+	Private save As Boolean
+	
+	%REM
+		Sub New
+		Description: Comments for Sub
+	%END REM
+	Public Sub New()
+		
+		save = False
+		
+	End Sub
+	
+	
+	%REM
+		Sub audit
+		Description: Comments for Sub
+	%END REM
+	Public Sub audit(doc As NotesDocument)
+		
+		Dim session As New NotesSession()
+		
+		Dim userName As NotesName
+		
+		Dim audit As NotesItem
+		
+		Dim itemName As String
+		
+		Dim itemReadableName As String
+		
+		Dim auditLine As String
+		
+		Set userName = New NotesName(session.UserName())
+		
+		If doc.HasItem("$AuditItems") Then
+			
+			If doc.HasItem(AUDIT_ITEM) Then
+				
+				Set audit = doc.GetFirstItem(AUDIT_ITEM)
+				
+			Else
+				
+				Set audit = New NotesItem(doc, AUDIT_ITEM, "")
+				
+			End If
+			
+			If doc.GetItemValue(AUDIT_ITEM)(0) = "" Then
+				
+				Call audit.AppendToTextList(creationStamp(userName))
+				
+				save = True
+				
+			End If
+			
+			ForAll item In doc.GetItemValue("$AuditItems")
+				
+				itemName = StrToken(item, "|", 1)
+				
+				itemReadableName = StrToken(item, "|", 2)
+				
+				If doc.GetItemValue(itemName)(0) <> doc.GetItemValue(ItemName & AUDIT_ITEM_SUFFIX)(0) Then
+					
+					save = True
+					
+					auditLine = (createAuditLine(doc, userName, itemName, itemReadableName))
+					
+					If auditLine <> "" Then
+						
+						Call audit.AppendToTextList(auditLine)
+						
+						auditLine = ""
+						
+					End If
+					
+					Call doc.ReplaceItemValue(itemName & AUDIT_ITEM_SUFFIX, doc.GetItemValue(itemname))
+					
+				End If
+				
+			End ForAll
+			
+		End If
+		
+	End Sub
+	
+	%REM
+		Function creationStamp
+		Description: Comments for Function
+	%END REM
+	Private Function creationStamp(userName As NotesName) As String
+		
+		creationStamp = CStr(Today) & " - " & userName.Common() & ": Dokument erstellt."
+		
+	End Function
+	
+	%REM
+		Function crateAuditLine
+		Description: Comments for Function
+	%END REM
+	Private Function createAuditLine(doc As NotesDocument, userName As NotesName,_
+		itemName As String, itemReadableName As String) As String
+		
+		If doc.HasItem(itemName & AUDIT_ITEM_SUFFIX) Then
+		
+			createAuditLine = CStr(Today) & " - " & userName.Common() & ": Feld '" & itemReadableName &_ 
+				"' wurde verändert. Alter Wert: " & CStr(doc.GetItemValue(itemName & AUDIT_ITEM_SUFFIX)(0)) &_
+				" | Neuer Wert: " & CStr(doc.GetItemValue(itemName)(0))
+			
+		End If
+		
+	End Function
+	
+	%REM
+		Function needsSave
+		Description: Comments for Function
+	%END REM
+	Public Function needsSave() As Boolean
+		
+		needsSave = save
+		
+	End Function
+End Class

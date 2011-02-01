@@ -1,0 +1,216 @@
+'++LotusScript Development Environment:2:5:(Options):0:74
+%REM
+	Library com.pitagora.event
+	Created May 12, 2010 by Gernot Hummer/Pitagora
+	Description: Comments for Library
+%END REM
+Option Public
+Option Declare
+Use "com.pitagora.util"
+
+
+'++LotusScript Development Environment:2:5:(Forward):0:1
+Declare Class BaseEvent As BaseClass
+Declare Private Class BaseEventBus As BaseClass
+Declare Public Class BaseEventListener As BaseClass
+Declare Private Class BaseEventListenerCollection As BaseClass
+Declare Class EventBusFactory As BaseClass
+
+'++LotusScript Development Environment:2:5:(Declarations):0:10
+'This is the singleton instance for the EventBus
+Private EventBus As BaseEventBus
+%REM
+	Class BaseEvent
+	Description: This class provides a basic event structure.
+%END REM
+Class BaseEvent As BaseClass
+	Private eventName As String
+	Private parent As Variant
+	Private props As HashMap
+	
+	%REM
+		Sub New
+		Description: Constructor
+		@param parent - The parent object that fires the event as <code>Variant</code>
+		@param eventName - The name of the event as <code>String</code>
+	%END REM
+	Public Sub New(parent As Variant, eventName As String)
+		Set Me.parent = parent
+		Me.eventName = eventName
+	End Sub
+	
+	%REM
+		Sub addProperty
+		@param key - The key for the property as <code>String</code>
+		@param prop - The property as <code>Variant</code>
+	%END REM
+	Public Sub addProperty(key As String, prop As Variant)
+		Call Me.props.putValue(key, prop)
+	End Sub
+	
+	%REM
+		Function hasProperty
+		@param key - The key to look for as <code>String</code>
+		@return True if the Event contains a value to the key.
+	%END REM
+	Public Function hasProperty(key As String) As Boolean
+		If Me.props.containsKey(key) Then
+			Me.hasProperty = True
+		Else
+			Me.hasProperty = False
+		End If
+	End Function
+	
+	%REM
+		Function getProperty
+		@param key - The key to look for as <code>String</code>
+	%END REM
+	Public Function getProperty(key As String) As Variant
+		If Me.props.containsKey(key) Then
+			Set Me.getProperty = Me.props.getValue(key)
+		End If
+	End Function
+	
+	%REM
+		Function getPropertyNames
+		@return the contained property names as <code>Variant</code>
+	%END REM
+	Public Function getPropertyNames() As Variant
+		Me.getPropertyNames = Me.props.keySet()
+	End Function
+	
+	%REM
+		Function getName
+		@return The name of this event.
+	%END REM
+	Public Function getName() As String
+		Me.getName = Me.eventName
+	End Function
+End Class
+%REM
+	Class EventBus
+	Description: This class handles events and calls their respective listeners.
+%END REM
+Private Class BaseEventBus As BaseClass
+	Private eventListeners As HashMap
+	
+	%REM
+		Sub New
+		Description: Constructor
+	%END REM
+	Public Sub New
+		Set Me.eventListeners = New HashMap()
+	End Sub
+	
+	%REM
+		Sub addListener
+		@param eventName - The name of the event to register the listener for
+		@param listener - The listener to register for an event.
+	%END REM
+	Public Sub addListener(eventName As String, listener As BaseEventListener)
+		Dim beListenerCol As BaseEventListenerCollection
+		
+		If Not Me.eventListeners.containsKey(eventName) Then
+			Set beListenerCol = New BaseEventListenerCollection()
+			Call Me.eventListeners.putValue(eventName, beListenerCol)
+		Else
+			Set beListenerCol = Me.eventListeners.getValue(eventName)
+		End If
+		
+		Call beListenerCol.addListener(listener)
+	End Sub
+	
+	%REM
+		Sub fire
+		@param bEvent - The <code>BaseEvent</code> that occured.
+	%END REM
+	Public Sub fire(bEvent As BaseEvent)
+		Dim eventName As String
+		Dim beListenerCol As BaseEventListenerCollection
+		
+		eventName = bEvent.getName()
+		If Me.eventListeners.containsKey(eventName) Then
+			Set beListenerCol = Me.eventListeners.getValue(eventName)
+			ForAll listener In beListenerCol.allListeners()
+				Call listener.listen(bEvent)
+			End ForAll
+		End If
+	End Sub
+End Class
+%REM
+	Class BaseEventListener
+	Description: This is the abstract event listener class where all
+	event listeners must derive from to be used by the <code>BaseEventBus</code>
+%END REM
+Public Class BaseEventListener As BaseClass
+	%REM
+		Sub New
+		Description: Comments for Sub
+	%END REM
+	Public Sub New
+		
+	End Sub
+	
+	%REM
+		Sub listen
+		Description: Comments for Sub
+	%END REM
+	Public Sub listen(bEvent As BaseEvent)
+		
+	End Sub
+End Class
+%REM
+	Class BaseEventListenerCollection
+	Description: The BaseEventListenerCollection is used in the <code>BaseEventBus</code>
+	to group the listeners according to the various event names.
+%END REM
+Private Class BaseEventListenerCollection As BaseClass
+	Private listeners List As BaseEventListener
+	Private count As Integer
+	
+	%REM
+		Sub New
+		Description: Constructor
+	%END REM
+	Public Sub New
+		Me.count = 0
+	End Sub
+	
+	%REM
+		Sub addListener
+		@param listener - The listener to register with the event.
+	%END REM
+	Public Sub addListener(listener As BaseEventListener)
+		Set Me.listeners(Me.count) = listener
+		Me.count = Me.count + 1
+	End Sub
+	
+	%REM
+		Function allListeners
+		@return all listeners in this collection as <code>Variant</code>
+	%END REM
+	Public Function allListeners() As Variant
+		Me.allListeners = Me.listeners
+	End Function
+	
+	Public Function getCount() As Integer
+		Me.getCount = Me.count
+	End Function
+End Class
+%REM
+	Class EventBusFactory
+	Description: This Factory ensures that during runtime only one instance of the
+	event bus exists at a time.
+%END REM
+Class EventBusFactory As BaseClass
+	%REM
+		Function getBus
+		@return The singleton Instance of the <code>BaseEventBus</code>
+	%END REM
+	Public Function getBus() As Variant
+		If EventBus Is Nothing Then
+			Set EventBus = New BaseEventBus
+		End If
+		Set getBus = EventBus
+	End Function
+End Class

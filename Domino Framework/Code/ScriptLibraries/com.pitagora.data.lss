@@ -1,0 +1,558 @@
+'++LotusScript Development Environment:2:5:(Options):0:74
+%REM
+	Library com.pitagora.data
+	Created Jul 14, 2010 by Gernot Hummer/Pitagora
+	Description: Comments for Library
+		
+	THIS LIBRARY IS PROVIDED ON AN AS IS BASIS. THE CREATOR OF THIS
+	LIBRARY CANNOT BE HELD RESPONSIBLE FOR ANY DAMAGE THAT MAY RESULT
+	IN THE USE OR MISUSE OF THIS LIBRARY.
+	
+	(c) PITAGORA INFORMATIONSMANAGEMENT GMBH, 2010
+	ALL RIGHTS RESERVED. UNAUTHORIZED USE AND/OR COPYING IS PROHIBITED
+	
+	IF YOU WANT TO LICENSE THIS LIBRARY FOR USE IN YOUR OWN PROJECT
+	PLEASE CONTACT THE CREATOR:
+	
+	PITAGORA INFORMATIONSMANAGEMENT GMBH,
+	OLYMPIASTRASSE 17
+	A-6020 INNSBRUCK
+	PHONE: 0043 512 586 765
+	FAX:   0043 512 586 765 - 33
+	MAIL:  office@pitagora.at
+%END REM
+Option Public
+Option Declare
+Use "com.pitagora.util"
+Use "com.pitagora.log"
+
+
+
+'++LotusScript Development Environment:2:5:(Forward):0:1
+Declare Class DataConnection As BaseClass
+Declare Class DataRecord As BaseClass
+Declare Class DataItemConfig As BaseClass
+Declare Class DataRecordConfig As BaseClass
+
+'++LotusScript Development Environment:2:5:(Declarations):0:10
+%REM
+	The items configs need to conform to the following syntax
+	itemPos~~~itemName~~~itemType~~~specialType1|SpecialType2|specialType3
+	Computation syntax:
+	itemPos~~~itemName~~~itemType~~~@Formula
+	Validation syntax:
+	uiName|internalName|@Formula|Error Message
+%END REM
+
+'General configuration
+Const CONFIG_SEP = "~~~"
+Const SUB_SEP = "|"
+
+'Item types
+Const ITEMTYPE_STRING = "STRING"
+Const ITEMTYPE_INTEGER = "INTEGER"
+Const ITEMTYPE_LONG = "LONG"
+Const ITEMTYPE_SINGLE = "SINGLE"
+Const ITEMTYPE_DOUBLE = "DOUBLE"
+Const ITEMTYPE_CURRENCY = "CURRENCY"
+Const ITEMTYPE_BOOLEAN = "BOOLEAN"
+Const ITEMTYPE_DATETIME = "DATETIME"
+
+'Recognized special types
+Const SPECIALTYPE_UNIQUE = "U"
+Const SPECIALTYPE_INITIAL = "I"
+Const SPECIALTYPE_AUTHOR = "A"
+Const SPECIALTYPE_READER = "R"
+Const SPECIALTYPE_NAME = "N"
+
+'Error messages
+Const ERROR_COMMIT = "701|Could not commit record to target for the following Reason: "
+Const ERROR_FILEACCESS = "702|Could not open file for set mode: "
+Const ERROR_CONNECTION_NOTOPEN = "703|The connection has not been opened."
+Const ERROR_NOCONFIG = "704|No data record config available, cannot build a record with unkown data structure"
+Const ERROR_DATACONVERSION = "705|Could not build data record, cause: "
+%REM
+	Class DataSource
+	Description: Abstract DataConnection
+%END REM
+Class DataConnection As BaseClass
+	Private config As DataRecordConfig
+	Private sourceName As String
+	Private cursor As Long
+	Private opn As Boolean
+	Private init As Boolean
+	Private endOfFile As Boolean
+	Private lCol As LogEntryCollection
+	
+	%REM
+		Sub New
+		Description: Constructor
+	%END REM
+	Public Sub New(sourceName As String)
+		Me.sourceName = sourceName
+		Me.cursor = 0
+		Me.opn = False
+		Me.init = False
+		Me.endOfFile = True
+	End Sub
+	
+	%REM
+		Sub setLogEntryCollection
+		Description: Comments for Sub
+	%END REM
+	Public Sub setLogEntryCollection(lCol As LogEntryCollection)
+		Set Me.lCol = lCol
+	End Sub
+	
+	%REM
+		Sub setConfig
+		@param drConfig as <code>DataRecordConfig</code>
+	%END REM
+	Public Sub setConfig(drConfig As DataRecordConfig)
+		Set Me.config = drConfig
+	End Sub
+	
+	%REM
+		Sub loadData
+		Description: provides means of fetching data from a source in actual implementations
+		Five parameters are possible to hand over to this function
+	%END REM
+	Public Sub loadData(param1 As Variant, param2 As Variant, param3 As Variant, param4 As Variant, param5 As Variant)
+		
+	End Sub
+	
+	%REM
+		Function openConnection
+		Description: Attempts to open the connection
+		@return True if opening was successful
+	%END REM
+	Public Function openConnection() As Boolean
+		Me.openConnection = False
+	End Function
+	
+	%REM
+		Function closeConnection
+		Description: Attempts to close the connection
+		@return True if closing was successful
+	%END REM
+	Public Function closeConnection() As Boolean
+		Me.closeConnection = False
+	End Function
+	
+	%REM
+		Function getFirstRecord
+		@return <code>DataRecord</code>, the first record from this source
+	%END REM
+	Public Function getFirstRecord() As DataRecord
+
+	End Function
+	
+	%REM
+		Function getNextRecord
+		@return <code>DataRecord</code>, the next record in this source
+	%END REM
+	Public Function getNextRecord() As DataRecord
+
+	End Function
+	
+	%REM
+		Function endOfSource
+		Description: Comments for Function
+	%END REM
+	Public Function isEndOfSource() As Boolean
+		
+	End Function
+	
+	%REM
+		Function commit
+		Description: commits a record to a data connection
+		@return True if commit was successful
+	%END REM
+	Public Function commit(record As DataRecord) As Boolean
+		
+	End Function
+	
+	%REM
+		Function isOpen
+		@return True if connection has been opened.
+	%END REM
+	Public Function isOpen() As Boolean
+		Me.isOpen = Me.opn
+	End Function
+	
+	%REM
+		Function isInitialized
+		@return True if connection was initialized successfully.
+	%END REM
+	Public Function isInitialized() As Boolean
+		Me.isInitialized = Me.init
+	End Function
+	
+	%REM
+		Function addToLog
+		Description: Comments for Function
+	%END REM
+	Public Function addToLog(msg As String)
+		If Not Me.lCol Is Nothing Then
+			Dim lEntry As New LogEntry(msg)
+			Call Me.lCol.addEntry(lEntry)
+		End If
+	End Function
+End Class
+%REM
+	Class DataRecord
+	Description: Comments for Class
+%END REM
+Class DataRecord As BaseClass
+	Private values As HashMap
+	Private config As DataRecordConfig
+	Private primaryKeyItem As String
+	Private cache As NotesDocument
+	
+	%REM
+		Sub New
+		Description: Constructor
+	%END REM
+	Public Sub New(config As DataRecordConfig)
+		Dim session As New NotesSession
+		
+		Set Me.cache = session.CurrentDatabase.CreateDocument()
+		Set Me.values = New HashMap()
+		Set Me.config = config
+	End Sub
+	
+	%REM
+		Sub addValue
+		@param itemName as String, the name of the field/item.
+		@param itemValue as <code>BaseClass</code>, the value of the field/item.
+	%END REM
+	Public Sub addValue(itemName As String, itemValue As BaseClass)
+		Dim aList As ArrayList
+		
+		If Not Me.values.containsKey(itemName) Then
+			Set aList = New ArrayList()
+			Call Me.values.putValue(itemName, aList)
+		End If
+		
+		Call Me.values.getValue(itemName).addObject(itemValue)
+	End Sub
+	
+	%REM
+		Sub setPrimaryKeyItem
+		@param itemName as String
+	%END REM
+	Public Sub setPrimaryKeyItem(itemName As String)
+		If Me.config.hasItemConfig(itemName) Then
+			Me.primaryKeyItem = itemName
+		End If
+	End Sub
+	
+	%REM
+		Function getPrimaryKeyItemName
+		@return String, the name of the item that is the primary key
+	%END REM
+	Public Function getPrimaryKeyItemName() As String
+		Me.getPrimaryKeyItemName = Me.primaryKeyItem
+	End Function
+	
+	%REM
+		Function hasPrimaryKey
+		@return True if a primary key item name has been set.
+	%END REM
+	Public Function hasPrimaryKey() As Boolean
+		If Me.primaryKeyItem <> "" Then Me.hasPrimaryKey = True Else Me.hasPrimaryKey = False
+	End Function
+	
+	%REM
+		Function getItemValue
+		@param itemName as String, the name of the item to retrieve the value for.
+	%END REM
+	Public Function getItemValue(itemName As String) As Variant
+		Dim itemValue As ArrayList
+		Dim returnValue() As Variant
+		Dim counter As Integer
+		
+		If Me.values.containsKey(itemName) Then
+			Set itemValue = Me.values.getValue(itemName)
+			ReDim returnValue(itemValue.getCount()-1)
+			counter = 0
+			
+			'Retyping back into native data types
+			ForAll value In itemValue.toArray()
+				Select Case TypeName(value)
+				Case "BASESTRING"
+					returnValue(counter) = value.toString()
+				Case "BASEINTEGER"
+					returnValue(counter) = CInt(value.toString())
+				Case "BASELONG"
+					returnValue(counter) = CLng(value.toString())
+				Case "BASESINGLE"
+					returnValue(counter) = CSng(value.toString())
+				Case "BASEDOUBLE"
+					returnValue(counter) = CDbl(value.toString())
+				Case "BASECURRENCY"
+					returnValue(counter) = CCur(value.toString())
+				Case "BASEBOOLEAN"
+					returnValue(counter) = CBool(value.toString())
+				Case "ARRAYLIST"
+					returnValue(counter) = value.toArray()
+				Case Else
+					Set returnValue(counter) = value	
+				End Select
+				counter = counter + 1
+			End ForAll
+			
+			Me.getItemValue = returnValue
+		End If
+	End Function
+	
+	%REM
+		Function getItemNames
+		Description: Get the current set of item names in this record
+	%END REM
+	Public Function getItemNames() As HashMap
+		Set Me.getItemNames = Me.values
+	End Function
+	
+	Public Function getConfig() As DataRecordConfig
+		Set Me.getConfig = Me.config
+	End Function
+	
+	%REM
+		Sub refreshCache
+		Description: refreshes the local cache for various computation
+	%END REM
+	Public Sub refreshCache()
+		Dim itemConfig As DataItemConfig
+		Dim item As NotesItem
+		
+		ForAll itemName In Me.values.keySet()
+			
+			Set itemConfig = Me.config.getItemConfig(CStr(itemName))
+				Call Me.cache.ReplaceItemValue(itemName, Me.getItemValue(CStr(itemName)))
+				Set item = Me.cache.GetFirstItem(itemName)
+				
+				ForAll specialType In itemConfig.getSpecialTypes().keySet()
+					Select Case CStr(specialType)
+					Case SPECIALTYPE_AUTHOR
+						item.IsAuthors = True
+					Case SPECIALTYPE_READER
+						item.IsReaders = True
+					Case SPECIALTYPE_NAME
+						item.IsNames = True				
+				End Select
+				End ForAll
+		End ForAll 
+	End Sub
+End Class
+%REM
+	Class DataItemConfig
+	Description: Comments for Class
+%END REM
+Class DataItemConfig As BaseClass
+	Private itemName As String
+	Private itemType As String
+	Private itemPos As Integer
+	Private formula As String
+	Private specialTypes As HashMap
+	
+	%REM
+		Sub New
+		Description: Constructor
+		@param itemName as String
+		@param itemType as String
+		@param itemPos as Integer, the position of the item (eg. for csv sources)
+	%END REM
+	Public Sub New(itemName As String, itemType As String, itemPos As Integer)
+		Me.itemName = itemName
+		Me.itemType = itemType
+		Me.itemPos = itemPos
+		Set Me.specialTypes = New HashMap()
+	End Sub
+	
+	%REM
+		Sub setFormula
+		Description: Set a formula to compute for this item (eg. for Notes targets)
+	%END REM
+	Public Sub setFormula(formula As String)
+		Me.formula = formula
+	End Sub
+	
+	%REM
+		Function hasFormula
+		@return True if a formula has been set.
+	%END REM
+	Public Function hasFormula() As Boolean
+		If Me.formula <> "" Then Me.hasFormula = True Else Me.hasFormula = False
+	End Function
+	
+	%REM
+		Function getFormula
+		@return String, the formula to compute for this item
+	%END REM
+	Public Function getFormula() As String
+		Me.getFormula = Me.formula
+	End Function
+	
+	%REM
+		Sub addSpecialType
+		@param specialType as String, the special type to add to this item
+	%END REM
+	Public Sub addSpecialType(specialType As String)
+		Dim bString As New BaseString(specialType)
+		Call Me.specialTypes.putValue(specialType, bString)
+	End Sub
+	
+	%REM
+		Function getItemName
+		@return the itemName as String
+	%END REM
+	Public Function getItemName() As String
+		Me.getItemName = Me.itemName
+	End Function
+	
+	%REM
+		Function getItemType
+		@return the itemType as String
+	%END REM
+	Public Function getItemType() As String
+		Me.getItemType = Me.itemType
+	End Function
+	
+	%REM
+		Function hasSpecialType
+		@param specialType as String, the special type to test for
+		@return True if the item has the handed in special type
+	%END REM
+	Public Function hasSpecialType(specialType As String) As Boolean
+		If Me.specialTypes.containsKey(specialType) Then
+			Me.hasSpecialType = True
+		Else
+			Me.hasSpecialType = False
+		End If
+	End Function
+	
+	%REM
+		Function getSpecialTypes
+		@return HashMap, all special types that have been set for this item.
+	%END REM
+	Public Function getSpecialTypes() As HashMap
+		Set Me.getSpecialTypes = Me.specialTypes
+	End Function
+	
+	%REM
+		Function getItemPos
+		@return Integer, the position of this item.
+	%END REM
+	Public Function getItemPos() As Integer
+		Me.getItemPos = Me.itemPos
+	End Function
+End Class
+%REM
+	Class DataRecordConfig
+	Description: Comments for Class
+%END REM
+Class DataRecordConfig As BaseClass
+	Private recordConfig As HashMap
+	Private computationConfig As HashMap
+	Private validationConfig As ArrayList
+	
+	%REM
+		Sub New
+		Description: Constructor
+	%END REM
+	Public Sub New(doc As NotesDocument)
+		Dim baseItemConfig As String
+		Dim itemConfig As DataItemConfig
+		
+		Set Me.recordConfig = New HashMap()
+		Set Me.computationConfig = New HashMap()
+		Set Me.validationConfig = New ArrayList()
+		
+		'Import Items
+		ForAll item In doc.GetItemValue("Items")
+			baseItemConfig = CStr(item)
+			Set itemConfig = New DataItemConfig(StrToken(baseItemConfig, CONFIG_SEP, 2), StrToken(baseItemConfig, CONFIG_SEP, 3),_
+				StrToken(baseItemConfig, CONFIG_SEP, 1))
+			
+			baseItemConfig = StrToken(baseItemConfig, CONFIG_SEP, 4)
+			If baseItemConfig <> "" Then
+				If InStr(baseItemConfig, SUB_SEP) > 0 Then
+					Dim currSpecialType As String
+					Dim index As Integer
+					index = 1
+					
+					currSpecialType = StrToken(baseItemConfig, SUB_SEP, index)
+					While Not currSpecialType = ""
+						Call itemConfig.addSpecialType(baseItemConfig)
+						index = index + 1
+						currSpecialType = StrToken(baseItemConfig, SUB_SEP, index)
+					Wend
+				Else
+					Call itemConfig.addSpecialType(baseItemConfig)
+				End If
+			End If
+			
+			Call Me.recordConfig.putValue(itemConfig.getItemName(), itemConfig)
+		End ForAll
+		
+		'Computed items
+		ForAll computation In doc.GetItemValue("Computation")
+			Set itemConfig = New DataItemConfig(StrToken(computation, CONFIG_SEP,2 ), StrToken(computation, CONFIG_SEP, 3), _
+				StrToken(computation, CONFIG_SEP, 1))
+			Call itemConfig.setFormula(StrToken(computation, CONFIG_SEP, 4))
+			Call Me.computationConfig.putValue(StrToken(computation, CONFIG_SEP, 1), itemConfig)
+		End ForAll
+		
+		'Validation items
+		Dim bString As BaseString
+		ForAll validation In doc.GetItemValue("Validation")
+			Set bString = New BaseSTring(CStr(validation))
+			Call Me.validationConfig.addObject(bString)
+		End ForAll
+	End Sub
+	
+	%REM
+		Function getItemConfig
+		@param itemName as String, the name of the requested item
+		@return <code>DataItemConfig</code>, the requested configuration
+	%END REM
+	Public Function getItemConfig(itemName As String) As DataItemConfig
+		If Me.recordConfig.containsKey(itemName) Then
+			Set Me.getItemConfig = Me.recordConfig.getValue(itemName)
+		End If
+	End Function
+	
+	%REM
+		Function getItemNames
+		@return HashMap, the current record configuration
+	%END REM
+	Public Function getRecordConfig() As HashMap
+		Set Me.getRecordConfig = Me.recordConfig
+	End Function
+	
+	%REM
+		Function getComputationConfig
+		@return HashMap, the current computation configuration	
+	%END REM
+	Public Function getComputationConfig() As HashMap
+		Set me.getComputationConfig = Me.computationConfig
+	End Function
+	
+	%REM
+		Function getValidationConfig
+		@return ArrayList, the current validation configuration
+	%END REM
+	Public Function getValidationConfig() As ArrayList
+		Set Me.getValidationConfig = Me.validationConfig
+	End Function
+	
+	%REM
+		Function hasItemConfig
+		@param itemName as String
+		@return True if a <code>DataItemConfig</code> is available for this itemName
+	%END REM
+	Public Function hasItemConfig(itemName As String) As Boolean
+		If Me.recordConfig.containsKey(itemName) Then Me.hasItemConfig = True Else Me.hasItemConfig = False
+	End Function
+End Class

@@ -1,0 +1,370 @@
+'++LotusScript Development Environment:2:5:(Options):0:74
+%REM
+	Library com.pitagora.pusher.file
+	Created Jun 16, 2010 by Gernot Hummer/Pitagora
+	 
+	THIS LIBRARY IS PROVIDED ON AN AS IS BASIS. THE CREATOR OF THIS
+	LIBRARY CANNOT BE HELD RESPONSIBLE FOR ANY DAMAGE THAT MAY RESULT
+	IN THE USE OR MISUSE OF THIS LIBRARY.
+	
+	(c) PITAGORA INFORMATIONSMANAGEMENT GMBH, 2010
+	ALL RIGHTS RESERVED. UNAUTHORIZED USE AND/OR COPYING IS PROHIBITED
+	
+	IF YOU WANT TO LICENSE THIS LIBRARY FOR USE IN YOUR OWN PROJECT
+	PLEASE CONTACT THE CREATOR:
+	
+	PITAGORA INFORMATIONSMANAGEMENT GMBH,
+	OLYMPIASTRASSE 17
+	A-6020 INNSBRUCK
+	PHONE: 0043 512 586 765
+	FAX:   0043 512 586 765 - 33
+	MAIL:  office@pitagora.at
+%END REM
+Option Public
+Option Declare
+Use "com.pitagora.util"
+Use "com.pitagora.log"
+
+
+'++LotusScript Development Environment:2:5:(Forward):0:1
+Declare Class FilePath As BaseClass
+Declare Class KnownExtensionsList As ArrayList
+Declare Class DirectoryContent As ArrayList
+Declare Class File As BaseClass
+
+'++LotusScript Development Environment:2:5:(Declarations):0:10
+Const WAIT_THRESHOLD = 0.5
+Const WAIT_TOTAL_THRESHOLD = 5
+
+'Log Entries
+Const LOG_ENTRY_WRONGEXTENSION = "File does not have a known extension, omitting"
+%REM
+	Class FilePath
+	Description: Comments for Class
+%END REM
+Class FilePath As BaseClass
+	Private filePath As String
+	
+%REM
+		Sub New
+		Description: Comments for Sub
+%END REM
+	Sub New(Byval fPath As String)
+		If Right(fPath, 1) <> DIR_SEPARATOR Then
+			Me.filePath = fPath & DIR_SEPARATOR
+		Else
+			Me.filePath = fPath
+		End If
+	End Sub
+	
+%REM
+		Function getPath
+		Description: Comments for Function
+%END REM
+	Public Function getPath() As String
+		Me.getPath = Me.filePath
+	End Function
+End Class
+%REM
+	Class KnowExtensions
+	Description: Comments for Class
+%END REM
+Class KnownExtensionsList As ArrayList
+%REM
+		Sub New
+		Description: Constructor
+%END REM
+	Public Sub New
+		
+	End Sub
+	
+%REM
+		Sub addKnownExtension
+		Description: Comments for Sub
+%END REM
+	Public Sub addExtension(extension As String)
+		Dim bString As New BaseString(extension)
+		Call Me.addObject(bString)
+	End Sub
+	
+%REM
+		Function contains
+		Description: True if the extension list contains the handed in extension
+%END REM
+	Public Function containsExtension(value As String) As Boolean
+		Dim bString As New BaseString(value)
+		
+		Me.containsExtension = Me.contains(bString)
+	End Function
+End Class
+%REM
+	Class DirectoryContent
+	Description: Comments for Class
+%END REM
+Class DirectoryContent As ArrayList
+	Private session As NotesSession
+	Private sys As System
+	Private tempPath As FilePath
+	Private knownExtensions As KnownExtensionsList
+	Private tmpFileName As String
+	Private fullTmpPath As String
+	
+%REM
+		Sub New
+		Description: Constructor
+%END REM
+	Public Sub New
+		Set Me.session = New NotesSession()
+		Set Me.sys = New System()
+		Set Me.knownExtensions = New KnownExtensionsList()
+		
+		Set Me.tempPath = New FilePath(sys.getTempFolder)
+	End Sub
+	
+%REM
+		Sub readBaseDirectory
+		Description: Reads a file Structure based on BASEPATH
+%END REM
+	Public Sub readBaseDirectory(basePath As String, lCol As LogEntryCollection)
+		On Error Goto ERROR_HANDLER
+		Dim tmpFolder As New FilePath(basePath)
+		Dim readCommand As String
+		Dim currEntry As String
+		Dim fileObj As File
+		Dim startStamp As NotesDateTime
+		Dim currStamp As NotesDateTime
+		Dim bError As BaseError
+		Dim nStream As NotesStream
+		
+		Me.tmpFileName = Cstr(Today) & "_PusherResult.pr"
+		Me.fullTmpPath = tmpFolder.getPath() & Me.tmpFileName
+		
+		'Creating a temporary file with the file structure to read in
+		readCommand = "DIR " & tmpFolder.getPath() & " /b /s >" & Me.fullTmpPath
+		If Not sys.postToShell(readCommand) Then
+			Set bError = New BaseError("File Operation", ERROR_SYSTEM_CMD)
+			Call Me.addLogEntry("FATAL:" & ERROR_SYSTEM_CMD & ": " & readCommand & "'.", lCol) 
+			Call Me.getErrorCollection().addError(bError)
+			Client_raiseError(bError.getErrorDesc())
+		End If
+		
+		'Sleep WAIT_THRESHOLD
+		'Wait for file to be created
+		Set startStamp = New NotesDateTime(Now)
+		Set currStamp = New NotesDateTime(Now)
+		
+		Sleep WAIT_THRESHOLD
+		'Wait for file write to complete
+		While Not Me.isFileAvailable(Me.fullTmpPath) And (currStamp.TimeDifference(startStamp)<=Csng(WAIT_TOTAL_THRESHOLD))
+			Sleep WAIT_THRESHOLD
+			Set currStamp = New NotesDateTime(Now)
+		Wend
+		
+		'Final check wether file is available or not
+		If Not Me.sys.fileExists(Me.fullTmpPath) Then 
+			Set bError = New BaseError("File Operation", ERROR_SYSTEM_FILEACCESS)
+			Call Me.addLogEntry("FATAL: " & ERROR_SYSTEM_FILEACCESS & " '" & Me.fullTmpPath & "'.", lCol)
+			Call Me.getErrorCollection().addError(bError)
+			Client_raiseError(bError.getErrorDesc())
+		Else
+			
+			'Actual build of the file structure based on generated file
+			Set nStream = Me.session.CreateStream()
+			Call nStream.Open(Me.fullTmpPath)
+			
+			While Not nStream.IsEOS()
+				currEntry = nStream.ReadText(STMREAD_LINE)
+				currEntry = Left(currEntry, Len(currEntry) - 2)
+				Print currEntry & " processed: " & Strrightback(currEntry, ".")
+				If knownExtensions.containsExtension("." & Strrightback(currEntry, ".")) Then
+					Set fileObj = New File(currEntry, Me.sys, basePath)
+					Call Me.addObject(fileObj)
+				Else
+					Call Me.addLogEntry(LOG_ENTRY_WRONGEXTENSION & " '" & currEntry & "'.", lCol)
+				End If
+			Wend
+			
+			'Closing file access for later deletion of temporary file
+			Call nStream.Close()
+			
+%REM ####### DEPRECATED, 01.07.2010, HUG
+				'####### NotesStream is a better way of handling file input
+			Me.fileNum = FreeFile()
+			Open Me.fullTmpPath For Input As #Me.fileNum
+			While Not EOF(Me.fileNum)
+				Line Input #Me.fileNum, currEntry
+				If knownExtensions.containsExtension("." & StrRightBack(currEntry, ".")) Then
+					Set fileObj = New File(currEntry, Me.sys, basePath)
+					Call Me.addObject(fileObj)
+				End If
+			Wend
+%END REM
+		End If
+		Exit Sub
+		
+ERROR_HANDLER:
+		Client_raiseError(Cstr(Err) & " | " & Error & " - " & Cstr(Erl))
+		Exit Sub
+	End Sub
+	
+%REM
+		Function isFileAvailable
+		@param filePath as String, the desired files location
+		@return true if no output handle is on the file
+%END REM
+	Private Function isFileAvailable(filePath As String)
+		On Error Goto ERROR_HANDLER
+		If Me.sys.fileExists(filePath) Then
+			Dim localFileNum As Integer
+			localFileNum = Freefile()
+			
+			Open filePath For Random As localFileNum
+			Close localFileNum
+			Me.isFileAvailable = True
+		Else
+			Me.isFileAvailable = False
+			Print "File is not event there."
+		End If
+		Exit Function
+		
+ERROR_HANDLER:
+		Me.isFileAvailable = False
+		Print "File is being filled."
+		Exit Function
+	End Function
+	
+%REM
+		Sub addToLog
+		Description: Comments for Sub
+%END REM
+	Private Sub addLogEntry(msg As String, lCol As LogEntryCollection)
+		Dim lEntry As LogEntry
+		
+		If Not lCol Is Nothing Then
+			Set lEntry = New LogEntry(msg)
+			Call lCol.addEntry(lEntry)
+		End If
+	End Sub
+	
+	Public Function getKnownExtensionsList() As KnownExtensionsList
+		Set Me.getKnownExtensionsList = Me.knownExtensions
+	End Function
+	
+%REM
+		Sub clear
+		Description: Deletes all temporarily needed files for file structure load process
+%END REM
+	Public Sub clear()
+		If Me.sys.fileExists(Me.fullTmpPath) Then
+			Kill Me.fullTmpPath
+		End If
+	End Sub
+End Class
+%REM
+	Class File
+	Description: Comments for Class
+%END REM
+Class File As BaseClass
+	Private localBasePath As String
+	Private subPath As String
+	Private fileName As String
+	Private extension As String
+	Private processed As Boolean
+	Private fileDate As NotesDateTime
+	
+%REM
+		Sub New
+		Description: Comments for Sub
+%END REM
+	Public Sub New(filePath As String, sys As System, basePath As String)
+		On Error Goto ERROR_HANDLER
+		If Instr(Ucase(filePath), basePath) > 0 Then
+			Me.localBasePath = basePATH
+			If Right(Me.localBasePath, 1) <> DIR_SEPARATOR Then
+				Me.localBasePath = Me.localBasePath & DIR_SEPARATOR
+			End If
+			
+			Me.subPath = Strright(Strleftback(filePath, DIR_SEPARATOR), Me.localBasePath)
+			If Me.subPath <> "" And (Right(Me.subPath, 1) <> DIR_SEPARATOR) Then
+				Me.subPath = Me.subPath & DIR_SEPARATOR
+			End If
+		Else
+			Me.subPath = Strleftback(filePath, DIR_SEPARATOR) & DIR_SEPARATOR
+		End If
+		
+		Me.fileName = Strrightback(filePath, DIR_SEPARATOR)
+		Me.extension = "." & Strrightback(Me.fileName, ".")
+		Me.processed = False
+		
+		Set Me.fileDate = sys.fileDate(filePath)
+		Exit Sub
+		
+ERROR_HANDLER:
+		Client_raiseError(Cstr(Err) & " | " & Error & " - " & Cstr(Erl))
+		Exit Sub
+	End Sub
+	
+%REM
+		Function getBasePath
+		Description: Comments for Function
+%END REM
+	Public Function getBasePath() As String
+		Me.getBasePath = Me.localBasePath
+	End Function
+	
+%REM
+		Function getSubPath
+		Description: Comments for Function
+%END REM
+	Public Function getSubPath() As String
+		Me.getSubPath = Me.subPath
+	End Function
+	
+%REM
+		Function getFileName
+		Description: Comments for Function
+%END REM
+	Public Function getFileName() As String
+		Me.getFileName = Me.fileName
+	End Function
+	
+%REM
+		Function getExtension
+		Description: Comments for Function
+%END REM
+	Public Function getExtension() As String
+		Me.getExtension = Me.extension
+	End Function
+	
+%REM
+		Function getFullyQualifiedName
+		Description: Comments for Function
+%END REM
+	Public Function getFullyQualifiedName() As String
+		Me.getFullyQualifiedName = Me.localBasePath & Me.subPath & Me.fileName
+	End Function
+	
+%REM
+		Function hasBeenProcessed
+		Description: Comments for Function
+%END REM
+	Public Function hasBeenProcessed() As Boolean
+		Me.hasBeenProcessed = Me.processed
+	End Function
+	
+%REM
+		Function setProcessed
+		Description: Comments for Function
+%END REM
+	Public Function setProcessed(bool As Boolean)
+		Me.processed = bool
+	End Function
+	
+%REM
+		Function getFileDate
+		Description: Comments for Function
+%END REM
+	Public Function getFileDate() As NotesDateTime
+		Set Me.getFileDate = Me.fileDate
+	End Function
+End Class

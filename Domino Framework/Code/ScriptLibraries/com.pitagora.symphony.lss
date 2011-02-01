@@ -1,0 +1,292 @@
+'++LotusScript Development Environment:2:5:(Options):0:74
+%REM
+	Library com.pitagora.symphony
+	Created Jun 23, 2010 by Gernot Hummer/Pitagora
+	Description: This script library solely purpose is to include the symphony lotus script library
+%END REM
+Option Public
+Option Declare
+%Include "symphonylsx.lss"
+Use "com.pitagora.util"
+
+'++LotusScript Development Environment:2:5:(Forward):0:1
+Declare Sub Initialize
+Declare Sub Terminate
+Declare Function WriteRTFHeader (fileNum As Integer, title As String, ps As PageSize)
+Declare Function WriteRTFField (fileNum As Integer, doc As NotesDocument, fieldName As String)
+Declare Public Function fillBookmark(bName As String, bValue As String, doc As SymphonyDocument) As Boolean
+Declare Public Function fillBookmarkRT(bName As String, fieldName As String, uiDoc As NotesUIDocument, doc As SymphonyDocument) As Boolean
+Declare Function GetFileChunk (fileNum As Integer, size As Integer) As String
+
+'++LotusScript Development Environment:2:5:(Declarations):0:10
+'** API functions we'll be using (adjust libraries as needed for your platform)
+Declare Function MailGetMessageBodyComposite Lib "nnotes" (ByVal hNote As Long, _
+ByVal ItemName As String, ByVal OutputFile As String, retFileSize As Long) As Integer
+
+'** I found out about this one on LDD, at: 
+'** http://www-10.lotus.com/ldd/46dom.nsf/55c38d716d632d9b8525689b005ba1c0/f8d2104fa0fc7b9e85256bc300684368?OpenDocument
+Declare Function ExportRTF Lib "nxrtf" Alias "ExportRTF" (ByVal sTempFile As String, _
+ByVal flags As Long, hmod As Long, ByVal altlibrary As String, _
+ByVal sRTFFile As String) As Integer
+
+'** temporary files we'll need to use
+Dim tempCdFile As String
+Dim tempRtfFile As String
+
+'** a custom data type that defines page size, in inches
+Type PageSize
+	pageHeight As Currency
+	pageWidth As Currency
+End Type
+
+'** some standard pre-defined PageSizes
+Dim LETTER_PORTRAIT As PageSize
+Dim LETTER_LANDSCAPE As PageSize
+Dim LEGAL_PORTRAIT As PageSize
+Dim LEGAL_LANDSCAPE As PageSize
+
+'** constants we use for simple text formatting
+Dim TEXT_PLAIN As String
+Dim TEXT_BOLD As String
+Dim TEXT_ITALIC As String
+Dim FONT_SERIF As String
+Dim FONT_SANS As String
+Dim FONT_MONO As String
+Dim FONT_SERIF_NAME As String
+Dim FONT_SANS_NAME As String
+Dim FONT_MONO_NAME As String
+
+'++LotusScript Development Environment:2:2:Initialize:1:10
+Sub Initialize
+	'** "constant" page size values
+	LETTER_PORTRAIT.pageHeight = 11
+	LETTER_PORTRAIT.pageWidth = 8.5
+	
+	LETTER_LANDSCAPE.pageHeight = 8.5
+	LETTER_LANDSCAPE.pageWidth = 11
+	
+	LEGAL_PORTRAIT.pageHeight = 14
+	LEGAL_PORTRAIT.pageWidth = 8.5
+	
+	LEGAL_LANDSCAPE.pageHeight = 8.5
+	LEGAL_LANDSCAPE.pageWidth = 14
+	
+	'** "constant" text format values (feel free to play with the font names a bit)
+	TEXT_PLAIN = ""
+	TEXT_BOLD = "\b"
+	TEXT_ITALIC = "\i"
+	'** Notes seems to expect its Default Serif font to be at f0, its Default Sans
+	'** font to be at f1, and its Default Fixed font to be at f2.
+	FONT_SERIF = "\f0"
+	FONT_SANS = "\f1"
+	FONT_MONO = "\f2"
+	FONT_SERIF_NAME = "Tms Rmn"
+	FONT_SANS_NAME = "Helv"
+	FONT_MONO_NAME = "Courier"
+	
+	'** "constant" temporary file names (adjust as desired)
+	tempCdFile = "~tempcd.cd"
+	tempRtfFile = "~temprtf.rtf"
+	
+End Sub
+
+'++LotusScript Development Environment:2:2:Terminate:1:10
+Sub Terminate
+	
+End Sub
+
+
+'++LotusScript Development Environment:2:1:WriteRTFHeader:1:8
+Function WriteRTFHeader (fileNum As Integer, title As String, ps As PageSize)
+	'** write the RTF header information to fileNum, which should represent
+	'** a file that's already been opened for output
+	Dim rtfString As String
+	Dim tempFileNum As Integer
+	
+	'** first, get the color table that Notes wants to use. We can actually do this
+	'** by calling the ExportRTF function against a blank file
+	tempFileNum = FreeFile()
+	Open tempCdFile For Output As tempFileNum
+	Close tempFileNum
+	
+	Call ExportRTF(tempCdFile, 0, 0, "", tempRtfFile)
+	
+	'** we want the entire contents of the tempRtfFile that was created to start off
+	'** our file header, minus the last "}"
+	Open tempRtfFile For Input As tempFileNum
+	'rtfString = Input$(32000, tempFileNum)
+	rtfString = GetFileChunk(tempFileNum, 30000)
+	Close tempFileNum
+	
+	rtfString = StrLeftBack(rtfString, "}")
+	
+	'** write the standard RTF intro and the Notes color table to our RTF file
+	Print #fileNum, rtfString
+	
+	'** add some font table definitions. Notes will expect things in this order: 
+	'** font f0 = serif font
+	'** font f1 = sans-serif font
+	'** font f2 = monospace font
+	'** you can use as many more fonts as you'd like, just use the format:
+	'** {\f# Font Name;}
+	'** where \f# is the way you'll be referring to the font (like \f5), and "Font Name"
+	'** is (obviously) the name of the font (like Tahoma)
+	Print #fileNum, "{\fonttbl{" & FONT_SERIF & "\froman " & FONT_SERIF_NAME & ";}"
+	Print #fileNum, "{" & FONT_SANS & "\fswiss " & FONT_SANS_NAME & ";}"
+	Print #fileNum, "{" & FONT_MONO & "\fmodern " & FONT_MONO_NAME & ";}}"
+	
+	'** add a title, just for looks
+	Print #fileNum, "{\info{\title " & title & "}}"
+	
+	'** set the paper size, and scale it a little so we can see it all on the screen
+	Print #fileNum, "\viewscale70\paperw" & (ps.pageWidth * 1440) & "\paperh" & (ps.pageHeight * 1440)
+	
+	'** set the margins
+	Print #fileNum, "\margl720\margr720\margt720\margb720"
+	
+	'** create a nice footer
+	Print #fileNum, "{\footer \pard \b {Page {\field{\fldinst PAGE}{\fldrslt 1}} of {\field{\fldinst NUMPAGES}{\fldrslt 1}}}}"
+	
+	'** and start the document off
+	Print #fileNum, "\pard\plain\noproof"
+	
+End Function
+
+'++LotusScript Development Environment:2:1:WriteRTFField:1:8
+Function WriteRTFField (fileNum As Integer, doc As NotesDocument, fieldName As String)
+	'** send a rich-text field from a document to our RTF file
+	Dim fileSize As Long
+	Dim tempFileNum As Integer
+	Dim rtfString As String
+	
+	Call WriteRTFHeader(fileNum, "", LETTER_PORTRAIT)
+	
+	'** convert the contents of the rich-text field to an RTF file (using the convenient but
+	'** undocumented NotesDocument.Handle property to get a handle to the doc)
+	Call MailGetMessageBodyComposite(doc.Handle, fieldName, tempCdFile, fileSize)
+	Call ExportRTF(tempCdFile, 0, 0, "", tempRtfFile)
+	
+	'** get the relevant contents of the temporary RTF file and dump them to
+	'** the RTF file we're creating
+	tempFileNum = FreeFile()
+	Open tempRtfFile For Input As tempFileNum
+	
+	'** get the initial chunk of text in the temp file, and skip all the header info
+	'rtfString = Input$(32000, tempFileNum)
+	rtfString = GetFileChunk(tempFileNum, 30000)
+	rtfString = "{\sectd" & StrRight(rtfString, "\sectd")
+	
+	'** write everything to our RTF file
+	Do While (Len(rtfString) > 0)
+		Print #fileNum, rtfString
+		'rtfString = Input$(32000, tempFileNum)
+		rtfString = GetFileChunk(tempFileNum, 30000)
+	Loop
+	
+	'** close the temporary file we were using
+	Close tempFileNum
+	
+End Function
+
+
+
+'++LotusScript Development Environment:2:1:fillBookmark:8:8
+%REM
+	Function fillBookmark
+	@param bName as String, the bookmarks name in the Symphony document.
+	@param bValue as String, the value to fill into the bookmark
+	@param doc as SymphonyDocument, the actual Symphony document containing the bookmark
+	@return True if the bookmark was found and filled successfully.
+%END REM
+Public Function fillBookmark(bName As String, bValue As String, doc As SymphonyDocument) As Boolean
+	Dim i As Long
+	Dim bMark As SymphonyBookmark
+	
+	For i = 1 To doc.Bookmarks.Count
+		If doc.Bookmarks.Item(i).Name = bName Then
+			Set bMark = doc.Bookmarks.Item(i)
+			bMark.Range.Text = bValue
+			fillBookmark = True
+			Exit For
+		End If
+	Next
+	fillBookmark = False
+End Function
+
+
+
+'++LotusScript Development Environment:2:1:fillBookmarkRT:5:8
+%REM
+	Function fillBookmarkRT
+	Description: Comments for Function
+%END REM
+Public Function fillBookmarkRT(bName As String, fieldName As String, uiDoc As NotesUIDocument, doc As SymphonyDocument) As Boolean
+	On Error GoTo ERR_HANDLER
+	Dim i As Integer
+	Dim bMark As SymphonyBookmark
+	Dim range As SymphonyTextRange
+	Dim nDoc As NotesDocument
+	Dim item As NotesRichTextItem
+	Dim tmpFolder As String
+	Dim fileName As String
+	Dim fileNum As Integer
+	Dim sys As New System()
+	
+	Set nDoc = uiDoc.Document
+	Set item = nDoc.GetFirstItem(fieldName)
+	tmpFolder = sys.getTempFolder()
+	fileName = tmpFolder & "\" & nDoc.UniversalID & ".rtf"
+	fileNum = FreeFile()
+	
+	If Not item Is Nothing Then
+		If item.Text <> "" Then
+			For i = 1 To doc.Bookmarks.Count
+				If doc.Bookmarks.Item(i).Name = bName Then
+					Set bMark = doc.Bookmarks.Item(i)
+					Set range = bMark.Range
+					
+					Open fileName For Output As #fileNum
+					Stop
+					Call WriteRTFField(fileNum, nDoc, fieldName)
+					Close #fileNum
+					
+					Call range.Importfile(fileName)
+					'Kill fileName
+				End If
+			Next
+		End If
+	End If
+	
+	fillBookmarkRT = True
+	Exit Function
+	
+ERR_HANDLER:
+	fillBookmarkRT = False
+	Exit Function
+End Function
+
+
+
+'++LotusScript Development Environment:2:1:GetFileChunk:1:8
+Function GetFileChunk (fileNum As Integer, size As Integer) As String
+	'** get the next chunk of text from a Random file, up to a given size
+	On Error GoTo processError
+	Dim dataLength As Long
+	
+	dataLength = LOF(fileNum) - Seek(fileNum)
+	Select Case (dataLength)
+	Case Is <= 0
+		GetFileChunk = ""
+	Case Is > size
+		GetFileChunk = Input$(size, fileNum)
+	Case Else
+		GetFileChunk = Input$(CInt(dataLength), fileNum)
+	End Select
+	
+	Exit Function
+	
+processError:
+	GetFileChunk = ""
+	Exit Function
+	
+End Function

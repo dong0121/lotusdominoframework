@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?><note class="filter" maintenanceversion="3.0" replicaid="C1257767004FA71B" version="8.5" xmlns="http://www.lotus.com/dxl">
+<noteinfo noteid="38e" sequence="14" unid="11F928B4B430D6F7C12577B60027CBB7">
+<created><datetime dst="true">20101008T091440,55+02</datetime></created>
+<modified><datetime>20110127T104709,35+01</datetime></modified>
+<revised><datetime>20110127T104709,33+01</datetime></revised>
+<lastaccessed><datetime>20110127T104709,33+01</datetime></lastaccessed>
+<addedtofile><datetime dst="true">20101008T091947,50+02</datetime></addedtofile></noteinfo>
+<updatedby><name>CN=Gernot Hummer/O=Pitagora</name></updatedby>
+<wassignedby><name>CN=Gernot Hummer/O=Pitagora</name></wassignedby>
+<item name="$Flags"><text>s34Q</text></item>
+<item name="$PublicAccess" sign="true"><text>1</text></item>
+<item name="$Comment" sign="true"><text>UTIL: Advanced functionality: ArrayList, HashMap, Math, Server, System</text></item>
+<item name="$TITLE" sign="true"><text>com.pitagora.util.deprecated</text></item>
+<item name="$DesignerVersion" sign="true"><text>8.5.3</text></item>
+
+</note>

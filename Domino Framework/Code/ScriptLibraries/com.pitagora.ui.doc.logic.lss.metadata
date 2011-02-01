@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?><note class="filter" maintenanceversion="3.0" replicaid="C1257767004FA71B" version="8.5" xmlns="http://www.lotus.com/dxl">
+<noteinfo noteid="1b2" sequence="14" unid="ADF413A1412C939AC125776700500B3E">
+<created><datetime dst="true">20100721T163417,58+02</datetime></created>
+<modified><datetime>20110127T104708,05+01</datetime></modified>
+<revised><datetime>20110127T104708,04+01</datetime></revised>
+<lastaccessed><datetime>20110127T104708,04+01</datetime></lastaccessed>
+<addedtofile><datetime dst="true">20100722T084225,35+02</datetime></addedtofile></noteinfo>
+<updatedby><name>CN=Gernot Hummer/O=Pitagora</name><name>CN=Sabine Oberleiter/O=Pitagora</name><name>CN=Gernot Hummer/O=Pitagora</name></updatedby>
+<wassignedby><name>CN=Gernot Hummer/O=Pitagora</name></wassignedby>
+<item name="$Flags"><text>s34Q</text></item>
+<item name="$PublicAccess" sign="true"><text>1</text></item>
+<item name="$TITLE" sign="true"><text>com.pitagora.ui.doc.logic</text></item>
+<item name="$DesignerVersion" sign="true"><text>8.5.2</text></item>
+<item name="$Comment"><text>EVENT: Basic business logic containers for doc event handling</text></item>
+
+</note>

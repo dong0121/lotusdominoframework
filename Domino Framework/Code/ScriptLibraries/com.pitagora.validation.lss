@@ -1,0 +1,202 @@
+'++LotusScript Development Environment:2:5:(Options):0:74
+%REM
+	Library com.pitagora.validation
+	Created Jul 1, 2010 by Gernot Hummer/Pitagora
+	Description: Comments for Library
+%END REM
+Option Public
+Option Declare
+Use "com.pitagora.util"
+
+'++LotusScript Development Environment:2:5:(Forward):0:1
+Declare Class Validator As BaseClass
+Declare Public Class Validation As BaseClass
+
+'++LotusScript Development Environment:2:5:(Declarations):0:10
+Const VALIDATOR_CONTENT_ITEM = "$Validation"
+Const VALIDATION_SEPARATOR = "|"
+Const VALIDATION_TRUE = 1
+Const GENERAL_KEY = "GENERAL VALIDATION"
+
+Const GENERAL_EVALUATION_ERROR = "Validation formula could not be run."
+Const INITIALIZATION_ERROR = "Could not initialized validation for"
+
+Const PROBLEM_BOX_START = "The following problems were found during validation: "
+
+'###### Fieldvalues must be 'FieldName on UI|Internal FieldName|Validation @Formula|Problem description'
+
+%REM
+	Class Validator
+	Description: Comments for Class
+%END REM
+Class Validator As BaseClass
+	Private validationList As ArrayList
+	Private problems As HashMap
+	
+	%REM
+		Sub New
+		Description: Constructor
+	%END REM
+	Public Sub New()
+
+	End Sub
+	
+	%REM
+		Function validate
+		@return true if the validation was successful
+	%END REM
+	Public Function validate(doc As NotesDocument) As Boolean
+		Dim problem As BaseString
+		Dim generalCount As Integer
+		
+		'Build validator
+		Dim valLoadObj As Validation
+		
+		Set Me.validationList = New ArrayList()
+		Set Me.problems = New HashMap()
+		
+		ForAll validation In doc.GetItemValue(VALIDATOR_CONTENT_ITEM)
+			Set valLoadObj = New Validation(CStr(validation), Me)
+			Call Me.validationList.addObject(valLoadObj)
+		End ForAll
+		
+		
+		'execute validator
+		generalCount = 0
+		Me.validate = True
+		ForAll valObj In Me.validationList.toArray()
+			If valObj.isInitialized() Then
+			If valObj.validate(doc) <> True Then
+				Me.validate = False
+				Set problem = New BaseString(valObj.getFieldName() & ": " & valObj.getProblem())
+				Call Me.problems.putValue(valObj.getFieldName(), problem)
+			End If
+			Else
+				generalCount = generalCount + 1
+				Set problem = New BaseString(INITIALIZATION_ERROR & " " & valObj.getFieldName())
+				Call Me.problems.putValue(GENERAL_KEY & CStr(generalCount), problem)
+			End If
+		End ForAll
+	End Function
+	
+	%REM
+		Function getProblemCount
+		@return The amount of problems found during validation
+	%END REM
+	Public Function getProblemCount() As Integer
+		Me.getProblemCount = Me.problems.getCounter()
+	End Function
+	
+	Public Function getProblems() As HashMap
+		Set Me.getProblems = Me.problems
+	End Function
+	
+	%REM
+		Sub raiseProblems
+		Description: Comments for Sub
+	%END REM
+	Public Sub raiseProblems()
+		Dim problems As String
+		Dim crlf As String
+		Dim spoof As Integer
+		
+		crlf = Chr(10) & Chr(13)
+		
+		ForAll problem In Me.problems.entrySet()
+			problems = problems & crlf & problem.toString()
+		End ForAll
+		
+		spoof = MessageBox(PROBLEM_BOX_START & problems, 16, ERROR_TITLE)
+	End Sub
+End Class
+
+
+%REM
+	Class Validation
+	Description: Comments for Class
+%END REM
+Public Class Validation As BaseClass
+	Private fieldName As String
+	Private internalFieldName As String
+	Private validationFormula As String
+	Private problemDescription As String
+	Private initialized As Boolean
+	Private problem As BaseString
+
+	%REM
+		Sub New
+		Description: Constructor
+	%END REM
+	Public Sub New(validationString As String, parentValidator As Validator)
+		
+		Me.initialized = False
+		Me.fieldName = StrToken(validationString, VALIDATION_SEPARATOR, 1)
+		Me.internalFieldName = StrToken(validationString, VALIDATION_SEPARATOR, 2)
+		Me.validationFormula = StrToken(validationString, VALIDATION_SEPARATOR, 3)
+		Me.problemDescription = StrToken(validationString, VALIDATION_SEPARATOR, 4)
+		
+		If Me.validationFormula = "" Then
+			Me.validationFormula = Me.internalFieldName & {!=""}
+		End If
+		
+		If Me.fieldName <> "" And Me.internalFieldName <> "" Then
+			Me.initialized = True
+		End If
+	End Sub
+	
+	%REM
+		Function isInitialized
+		Description: Comments for Function
+	%END REM
+	Public Function isInitialized() As Boolean
+		Me.isInitialized = Me.initialized
+	End Function
+	
+	%REM
+		Function validate
+		@return true if the validation succeeded
+	%END REM
+	Public Function validate(doc As NotesDocument) As Boolean
+		On Error GoTo ERROR_HANDLER
+		Dim eval As Variant
+		Me.validate = True
+		
+		eval = Evaluate(Me.validationFormula, doc)
+		ForAll returnVal In eval
+			If CSng(returnVal) <> VALIDATION_TRUE Then
+				Set Me.problem = New BaseString(Me.problemDescription)
+				Me.validate = False
+			End If
+		End ForAll
+		Exit Function
+		
+ERROR_HANDLER:
+		Set Me.problem = New BaseString(GENERAL_EVALUATION_ERROR & " - '" & Me.validationFormula & "'")
+		Me.validate = False
+		Exit Function
+	End Function
+	
+	%REM
+		Function getProblem
+		@return the problem description as String, if there is any problem
+	%END REM
+	Public Function getProblem() As String
+		Me.getProblem = Me.problem.toString()
+	End Function
+	
+	%REM
+		Function getInternalFieldName
+		@return the internal field name for this validation
+	%END REM
+	Public Function getInternalFieldName() As String
+		Me.getInternalFieldName = Me.internalFieldName
+	End Function
+	
+	%REM
+		Function getFieldName
+		@return the user interface name of the field for this validation
+	%END REM
+	Public Function getFieldName() As String
+		Me.getFieldName = Me.fieldName
+	End Function
+End Class

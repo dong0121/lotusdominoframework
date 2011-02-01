@@ -1,0 +1,51 @@
+'++LotusScript Development Environment:2:5:(Options):0:74
+%REM
+	Library com.pitagora.binding.forms.connection
+	Created Jul 15, 2010 by Gernot Hummer/Pitagora
+	Description: Comments for Library
+%END REM
+Option Public
+Option Declare
+Use "com.pitagora.ui.doc.controller"
+Use "com.pitagora.validation"
+
+'++LotusScript Development Environment:2:5:(Forward):0:1
+Declare Class QuerySaveLogic As BaseQueryEventLogic
+Declare Class ConnectionFormEventBinding As BaseDocumentEventBinding
+
+'++LotusScript Development Environment:2:5:(Declarations):0:10
+%REM
+	Class QuerySaveListener
+	Description: Comments for Class
+%END REM
+Class QuerySaveLogic As BaseQueryEventLogic
+	
+	%REM
+		Sub listen
+		Description: Comments for Sub
+	%END REM
+	Public Sub run(Source As NotesUIDocument, Continue As Variant)
+		Dim validator As New Validator()
+
+		If Not validator.validate(Source.Document) Then
+			Call validator.raiseProblems()
+			Continue = False
+		End If
+	End Sub
+End Class
+
+Class ConnectionFormEventBinding As BaseDocumentEventBinding
+	
+	Public Sub initialize(Source As NotesUIDocument, Mode As Integer, IsNewDoc As Variant, Continue As Variant)
+		'Instantiate our logic to be run on events
+		Dim querySave As New QuerySaveLogic()
+
+		'Note: This command needs to be set in order to instantiate the actual controller!
+		Call Me.initController(Source, Mode, IsNewDoc, Continue)
+
+		'Attach the logic to their respective events in the form
+		Call Me.docController.addQueryListener("QuerySave", querySave)
+		Stop
+	End Sub
+	
+End Class

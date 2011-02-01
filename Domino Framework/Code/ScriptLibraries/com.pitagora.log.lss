@@ -1,0 +1,392 @@
+'++LotusScript Development Environment:2:5:(Options):0:74
+%REM
+	Library com.pitagora.log
+	Created Jun 22, 2010 by Gernot Hummer/Pitagora
+	
+	THIS LIBRARY IS PROVIDED ON AN AS IS BASIS. THE CREATOR OF THIS
+	LIBRARY CANNOT BE HELD RESPONSIBLE FOR ANY DAMAGE THAT MAY RESULT
+	IN THE USE OR MISUSE OF THIS LIBRARY.
+	
+	(c) PITAGORA INFORMATIONSMANAGEMENT GMBH, 2010
+	ALL RIGHTS RESERVED. UNAUTHORIZED USE AND/OR COPYING IS PROHIBITED
+	
+	IF YOU WANT TO LICENSE THIS LIBRARY FOR USE IN YOUR OWN PROJECT
+	PLEASE CONTACT THE CREATOR:
+	
+	PITAGORA INFORMATIONSMANAGEMENT GMBH,
+	OLYMPIASTRASSE 17
+	A-6020 INNSBRUCK
+	PHONE: 0043 512 586 765
+	FAX:   0043 512 586 765 - 33
+	MAIL:  office@pitagora.at
+%END REM
+Option Public
+Option Declare
+
+Use "com.pitagora.util"
+
+
+
+'++LotusScript Development Environment:2:5:(Forward):0:1
+Declare Class Logger As BaseClass
+Declare Class LogEntry As BaseClass
+Declare Class LogEntryCollection As ArrayList
+
+'++LotusScript Development Environment:2:5:(Declarations):0:10
+'Log management
+Const LOG_VIEWNAME = "($LOG_VIEW)"
+Const LOG_SELECTION = {SELECT (DocType*="$Log") & !(DeleteBy!="")}
+Const LOG_DOCTYPE = "$Log"
+Const LOG_ITEM_LIMIT = 15000
+
+'Log content
+Const LOG_ITEM = "Body"
+
+'Log Entry Severity
+Const SEVERITY_OK = 0
+Const SEVERITY_WARNING = 1
+Const SEVERITY_ERROR = 2
+Const SEVERITY_FATAL = 3
+
+%REM
+	Class Logger
+	Description: Takes care of logging functionality
+%END REM
+
+Class Logger As BaseClass
+	Private session As NotesSession
+	Private loggingDb As NotesDatabase
+	Private loggingView As NotesView
+	Private loggingDoc As NotesDocument
+	Private loggingItem As NotesItem
+	Private save As Boolean
+	Private currentLogSize As Long
+	
+	%REM
+		Sub new
+		Description: Constructor
+	%END REM
+	Public Sub New
+		Set Me.session = New NotesSession()
+		Set Me.loggingDb = Me.session.CurrentDatabase()
+		Me.save = False
+	End Sub
+	
+	%REM
+		Sub setLoggingDb
+		Description: Set the logging db to a specific database
+		@param server as String, the Server the logging db resides on
+		@param dbFilePath as String, the relative filepath of the logging db within the data directory on the server
+	%END REM
+	Public Sub setLoggingDb(server As String, dbFilePath As String)
+		Set Me.loggingDb = Me.session.GetDatabase(server, dbFilePath)
+	End Sub
+	
+	%REM
+		Function isConnected
+		@return whether the desired logging db exists or not
+	%END REM
+	Public Function isConnected() As Boolean
+		If Me.loggingDb.IsOpen Then Me.isConnected = True Else Me.isConnected = False
+	End Function
+	
+	%REM
+		Sub init
+		Description: Initializes the current document to log to. This always needs to be called before committing to the log.
+	%END REM
+	Public Sub init()
+		'Fetch logging view
+		If Not Me.loggingDb Is Nothing Then
+			Set Me.loggingView = Me.loggingDb.GetView(LOG_VIEWNAME)
+			If Me.loggingView Is Nothing Then Call Me.createLoggingView()
+		End If
+		
+		'Fetch logging doc
+		Set Me.loggingDoc = Me.loggingView.Getlastdocument()
+		If Me.loggingDoc Is Nothing Then
+			Call Me.createLoggingDoc()
+		End If
+		
+		If Me.loggingItem Is Nothing And Me.loggingDoc.HasItem(LOG_ITEM) Then
+			Set Me.loggingItem = Me.loggingDoc.GetFirstItem(LOG_ITEM)
+		End If
+	End Sub
+	
+	%REM
+		Sub createLoggingDoc
+		Description: Internal function to create a new logging doc
+	%END REM
+	Private Sub createLoggingDoc()
+		On Error GoTo ERR_HANDLER
+		
+		Dim bError As BaseError
+		Set Me.loggingDoc = Me.loggingDb.CreateDocument()
+		Call Me.loggingDoc.ReplaceItemValue("DocType", LOG_DOCTYPE)
+		Call Me.loggingDoc.ReplaceItemValue("Form", LOG_DOCTYPE)
+		Call Me.loggingDoc.ReplaceItemValue("Created", Now)
+		Set Me.loggingItem = New NotesItem(Me.loggingDoc, LOG_ITEM, "")
+		Me.save = True
+		Exit Sub
+		
+ERR_HANDLER:
+		Set bError = New BaseError(ERROR_TITLE, ERROR_CREATE_DOC)
+		Call Me.getErrorCollection().addError(bError)
+		Exit Sub
+	End Sub
+	
+	%REM
+		Sub createLoggingView
+		Description: Internal function to create the logging view
+		NOTE: In 8.5.2 beta CD 5 this function seemed to cause an nsd crash!
+	%END REM
+	Private Sub createLoggingView()
+		On Error GoTo ERR_HANDLER
+		
+		Dim bError As BaseError
+		Dim column As NotesViewColumn
+		
+		Set Me.loggingView = Me.loggingDb.CreateView(LOG_VIEWNAME, LOG_SELECTION)
+		Set column = Me.loggingView.CreateColumn(1, "Created", "Created")
+		column.IsSorted = True
+		column.IsSortDescending = False
+		Call Me.loggingView.Refresh()
+		Exit Sub
+		
+ERR_HANDLER:
+		Set bError = New BaseError(ERROR_TITLE, ERROR_CREATE_VIEW)
+		Call Me.getErrorCollection().addError(bError)
+		Exit Sub
+	End Sub
+	
+	%REM
+		Function getCurrentSize
+		Description: Internal function to check for the size of the current logging item
+		@return Bytesize as Long
+	%END REM
+	Private Function getCurrentSize() As Long
+		Dim item As NotesItem
+		
+		If Not Me.loggingDoc Is Nothing Then
+			Set item = Me.loggingDoc.GetFirstItem(LOG_ITEM)
+			If item Is Nothing Then
+				Set item = New NotesItem(Me.loggingDoc, LOG_ITEM, "")
+				item.IsSummary = True
+				Me.save = True
+			Else
+				Me.getCurrentSize() = item.Valuelength
+			End If
+		End If
+	End Function
+	
+	%REM
+		Function commit
+		Description: commits a <code>LogEntryCollection</code> to the log
+		@param The <code>LogEntryCollection</code> to commit
+		@return true if the transaction was successful
+	%END REM
+	Public Function commit(logC As LogEntryCollection) As Boolean
+		Me.commit = False
+		
+		If Me.hasError() Then
+			Dim bError As BaseError
+			Set bError = Me.getErrorCollection().getNthError(1)
+			Client_raiseError(bError.getErrorDesc())
+			Exit Function
+		End If
+
+		Dim entryLength As Integer
+
+		If logC.getCount() = 0 Then
+			Me.commit = True
+			Exit Function
+		End If
+		
+		ForAll logEntry In logC.toArray()
+
+			'Check wether the next log entry would exceed item size limitation
+			entryLength = Len(logEntry.toString())
+			If Me.getCurrentSize() + entryLength >= LOG_ITEM_LIMIT Then
+				If Me.save Then
+					'Set an end date for the log document that will be closed
+					Call Me.loggingDoc.ReplaceItemValue("Closed", Now)
+					Call Me.loggingDoc.Save(True, False, True)
+					'Create a new logging document
+					Call Me.createLoggingDoc()
+				End If
+			End If
+			
+			'Actual appending of log entry to the logging item
+			Call Me.loggingItem.AppendToTextList(logEntry.toString())
+			'Set save to true if not already happened
+			If Me.save = False Then Me.save = True
+		End ForAll
+		
+		'save the log to disk
+		If Me.save Then Call Me.loggingDoc.Save(True, False, True)
+		'transaction was successful, hand that back to the agent
+		Me.commit = True
+	End Function
+	
+	%REM
+		Function sendAsEMail
+		@param The <code>LogEntryCollection</code> to send 
+		@param renderForm as String, an optional form name to render the E-Mail Body with
+		@return true if the E-Mail was sent successfully
+	%END REM
+	Public Function sendAsEMail(logC As LogEntryCollection, sendTo As Variant, renderForm As String) As Boolean
+		On Error GoTo ERR_HANDLER
+		Me.sendAsEMail = False
+		
+		Dim contentDoc As New NotesDocument(Me.loggingDb)
+		Dim contentItem As NotesRichTextItem
+		
+		Dim server As New Server(Me.loggingDb.Server)
+		
+		Set contentItem = contentDoc.Createrichtextitem("Body")
+		ForAll entry In logC.toArray()
+			Call contentItem.AppendToTextList(entry.toString())
+		End ForAll
+		
+		Call contentDoc.ReplaceItemValue("SendTo", sendTo)
+		
+		If renderForm <> "" Then
+			Dim mailDoc As New NotesDocument(Me.loggingDb)
+			
+			Call contentDoc.ReplaceItemValue("Form", renderForm)
+			Call contentDoc.ComputeWithForm(False, False)
+			Set contentItem = mailDoc.CreateRichTextItem("Body")			
+			
+			Call contentDoc.RenderToRTItem(contentItem)
+			Set contentDoc = mailDoc
+		End If
+		
+		Call contentDoc.ReplaceItemValue("Form", "Memo")
+		Me.sendAsEMail = server.sendMailAs("System Logging", contentDoc)
+		Exit Function
+		
+ERR_HANDLER:
+		Dim bError As New BaseError(ERROR_TITLE, ERROR_MAIL_SEND & ": " & Error)
+		Call Me.getErrorCollection().addError(bError)
+	End Function
+End Class
+%REM
+	Class LogEntry
+	Description: Single entry in a <code>com.pitagora.log.LogEntryCollection</code>
+%END REM
+Class LogEntry As BaseClass
+	Private timeStamp As NotesDateTime
+	Private message As String
+	Private severity As Integer
+	Private parentCollection As LogEntryCollection
+	
+	%REM
+		Sub New
+		Description: Constructor
+	%END REM
+	Public Sub New(msg As String)
+		Set Me.timeStamp = New NotesDateTime(Now)
+		Me.message = msg
+		Me.severity = SEVERITY_OK
+	End Sub
+	
+	%REM
+		Sub setSeverity
+		@param The severity of this log entry
+	%END REM
+	Public Sub setSeverity(sev As Integer)
+		Me.severity = sev
+		If Not Me.parentCollection Is Nothing Then
+			Call Me.parentCollection.setMaxSeverity(Me.severity)
+		End If
+	End Sub
+	
+	%REM
+		Function getSeverity
+		@return The severity of this log entry
+	%END REM
+	Public Function getSeverity() As Integer
+		Me.getSeverity = Me.severity
+	End Function
+	
+	%REM
+		Sub setParentLogEntryCollection
+		Description: Comments for Sub
+	%END REM
+	Public Sub setParentLogEntryCollection(lCol As LogEntryCollection)
+		Set Me.parentCollection = lCol
+	End Sub
+	
+	Public Function getParentLogEntryCollection() As LogEntryCollection
+		Set Me.getParentLogEntryCollection = Me.parentCollection
+	End Function
+	
+	%REM
+		Function getTimeStamp
+		@return the timestamp as NotesDateTime
+	%END REM
+	Public Function getTimeStamp() As NotesDateTime
+		Set Me.getTimeStamp = Me.timeStamp
+	End Function
+	
+	%REM
+		Function getMessage
+		@return the log message as String
+	%END REM
+	Public Function getMessage() As String
+		Me.getMessage = Me.message
+	End Function
+	
+	%REM
+		Function toString
+		@return a log entry in format "timestamp - logmessage"
+	%END REM
+	Public Function toString() As String
+		Me.toString = Me.timeStamp.Localtime & " - " & Me.message
+	End Function
+End Class
+%REM
+	Class LogEntryCollection
+	Description: Class for use with <code>com.pitagora.log.Logger</code>
+%END REM
+Class LogEntryCollection As ArrayList
+	Private maxSeverity As Integer
+	
+	%REM
+		Sub new
+		Description: Constructor
+	%END REM
+	Public Sub New
+		
+	End Sub
+	
+	%REM
+		Function getMaxSeverity
+		@return the maximum severity of all log entries in this collection as Integer
+	%END REM
+	Public Function getMaxSeverity() As Integer
+		Me.getMaxSeverity = Me.maxSeverity
+	End Function
+	
+	%REM
+		Function setMaxSeverity
+		Description: Avoid using this function directly. Set the severity in each log entry.
+		@param The severity to set the MaxSeverity to
+	%END REM
+	Public Sub setMaxSeverity(sev As Integer)
+		If Me.maxSeverity < sev Then
+			Me.maxSeverity = sev
+		End If
+	End Sub
+	
+	%REM
+		Sub addEntry
+		@param The log entry to be added to this collection
+	%END REM
+	Public Sub addEntry(lEntry As LogEntry)
+		Call Me.addObject(lEntry)
+		Call lEntry.setParentLogEntryCollection(Me)
+		If Me.maxSeverity < lEntry.getSeverity() Then
+			Me.maxSeverity = lEntry.getSeverity()
+		End If
+	End Sub
+End Class

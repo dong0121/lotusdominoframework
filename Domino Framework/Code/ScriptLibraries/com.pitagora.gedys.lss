@@ -1,0 +1,77 @@
+'++LotusScript Development Environment:2:5:(Options):0:74
+%REM
+	Library com.pitagora.gedys
+	Created Jul 20, 2010 by Gernot Hummer/Pitagora
+	Description: Comments for Library
+%END REM
+Option Public
+Option Declare
+Use "com.pitagora"
+
+
+'++LotusScript Development Environment:2:5:(Forward):0:1
+Declare Public Function createDataSyncRequest(server As String, dbSetPath As String, dbPath As String, dbTitle As String, uniqueID As String, raiseError As Boolean)
+
+'++LotusScript Development Environment:2:5:(Declarations):0:2
+
+'++LotusScript Development Environment:2:1:createDataSyncRequest:10:8
+%REM
+	Function createDataSyncRequest
+	@param server as String, the server the installation resides on
+	@param dbSetPath as String, the path of the settings database
+	@param dbPath as String, the path of the database containing the document that needs refreshing
+	@param dbTitle as String, the title of the database containing the document
+	@param uniqueID as String, the ID item value of the document that needs refreshing
+	@return True if the transaction was successful
+%END REM
+Public Function createDataSyncRequest(server As String, dbSetPath As String, dbPath As String, dbTitle As String, uniqueID As String, raiseError As Boolean)
+	On Error GoTo ERROR_HANDLER
+	createDataSyncRequest = False
+	
+	Dim session As New NotesSession
+	Dim dbSet As NotesDatabase
+	Dim requestDoc As NotesDocument
+	Dim item As NotesItem
+	Dim result As Variant
+	Dim hardWiredItems List As String
+	
+	hardWiredItems(0) = {DocGroup|"Configuration"}
+	hardWiredItems(1) = {DocTitle|"Anfrage Adminprozess"}
+	hardWiredItems(2) = {DocType|"faAdminRequest"}
+	hardWiredItems(3) = {fdDate|@Now}
+	hardWiredItems(4) = {fdDocReaders|"[ExpandAdmin]":"[Servers]"}
+	hardWiredItems(5) = {fdForce|"0"}
+	hardWiredItems(6) = {fdIsNewDoc|"0"}
+	hardWiredItems(7) = {fdRequestStatus|"0"}
+	hardWiredItems(8) = {fdRequestType|"DataSync"}
+	hardWiredItems(9) = {FORM|"faAdminRequest"}
+	hardWiredItems(10) = {viewDateCreated|@Now}
+	hardWiredItems(11) = {viewRequestStatus|"offen"}
+	hardWiredItems(12) = {viewRequestType|"Datenaktualisierung"}
+	
+	Set dbSet = session.GetDatabase(server, dbSetPath)
+	If Not dbSet Is Nothing Then
+		Set requestDoc = dbSet.CreateDocument()
+		ForAll computation In hardWiredItems
+			result = Evaluate(StrToken(computation, "|", 2), requestDoc)
+			Set item = requestDoc.ReplaceItemValue(StrToken(computation, "|", 1), result)
+			If StrToken(computation, "|", 1) = "fdDocReaders" Then item.IsReaders = True
+		End ForAll
+		
+		Call requestDoc.ReplaceItemValue("fdDbName", dbPath)
+		Call requestDoc.ReplaceItemValue("fdDbServer", server)
+		Call requestDoc.ReplaceItemValue("fdDbTitle", dbTitle)
+		Call requestDoc.ReplaceItemValue("fdLogName", dbTitle)
+		Call requestDoc.ReplaceItemValue("fdParam1", uniqueID)
+		Call requestDoc.ReplaceItemValue("fdUser", session.UserName)
+		Call requestDoc.Save(True, False, True)
+		createDataSyncRequest = True
+	End If
+	
+	Exit Function
+	
+ERROR_HANDLER:
+	createDataSyncRequest = False
+	If raiseError Then Call Client_raiseError("Error #" & CStr(Err) & ": " & Error & "(" & CStr(Erl) & ")" )
+	Exit Function
+End Function

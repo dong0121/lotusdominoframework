@@ -1,0 +1,354 @@
+'++LotusScript Development Environment:2:5:(Options):0:74
+%REM
+	Library com.pitagora.ui.view.controller
+	Created Jun 25, 2010 by Gernot Hummer/Pitagora
+	Description: Comments for Library
+%END REM
+Option Public
+Option Declare
+Use "com.pitagora.util"
+Use "com.pitagora.ui.view.logic"
+
+
+'++LotusScript Development Environment:2:5:(Forward):0:1
+Declare Class BaseViewController
+Declare Class BaseQueryEventListener As BaseClass
+Declare Class BasePostEventListener As BaseClass
+Declare Class BaseInViewEditListener As BaseClass
+Declare Class BaseAddToFolderListener As BaseClass
+Declare Class BaseViewEventBinding As BaseClass
+
+'++LotusScript Development Environment:2:5:(Declarations):0:10
+%REM
+	Class BaseViewController
+	Description: Comments for Class
+%END REM
+Class BaseViewController
+	Private uiView As NotesUIView
+	Private queryListeners As HashMap
+	Private postListeners As HashMap
+	Private inViewEditListeners As HashMap
+	Private addToFolderListeners As HashMap
+	
+	%REM
+		Sub New
+		Description: Comments for Sub
+	%END REM
+	Public Sub New(Source As NotesUIView, Continue As Variant)
+		Set Me.uiView = Source
+		Set Me.queryListeners = New HashMap()
+		Set Me.postListeners = New HashMap()
+		Set Me.inViewEditListeners = New HashMap()
+		Set Me.addToFolderListeners = New HashMap()
+	End Sub
+	
+	%REM
+		Sub addQueryListener
+		@param uiEvent as String, the name of the query event on the form
+		@param listener as BaseQueryEventListener, the listener business logic
+	%END REM
+	Public Sub addQueryListener(uiEvent As String, logic As BaseQueryEventLogic)
+		If Not Me.queryListeners.containsKey(uiEvent) Then
+			Dim listener As New BaseQueryEventListener()
+			Call Me.queryListeners.putValue(uiEvent, listener)
+			Call listener.initialize(Me.uiView, uiEvent)
+		End If
+		
+		Call Me.queryListeners.getValue(uiEvent).addLogic(logic)
+	End Sub
+	
+	%REM
+		Sub addPostListener
+		@param uiEvent as String, the name of the query event on the form
+		@param listener as BasePostEventListener, the listener business logic
+	%END REM
+	Public Sub addPostListener(uiEvent As String, logic As BasePostEventLogic)
+		If Not Me.postListeners.containsKey(uiEvent) Then
+			Dim listener As New BasePostEventListener()
+			Call Me.postListeners.putValue(uiEvent, listener)
+			Call listener.initialize(Me.uiView, uiEvent)
+		End If
+		
+		Call Me.postListeners.getValue(uiEvent).addLogic(logic)
+	End Sub
+	
+	%REM
+		Sub addInViewEditListener
+		@param listener as BaseQueryEventListener, the listener business logic
+	%END REM
+	Public Sub addInViewEditListener(logic As BaseInViewEditLogic)
+		If Not Me.inViewEditListeners.containsKey("InViewEdit") Then
+			Dim listener As New BaseInViewEditListener()
+			Call Me.inViewEditListeners.putValue("InViewEdit", listener)
+			Call listener.initialize(Me.uiView, "InViewEdit")
+		End If
+		
+		Call Me.inViewEditListeners.getValue("InViewEdit").addLogic(logic)
+	End Sub
+	
+	%REM
+		Sub addAddToFolderListener
+		@param listener as BaseQueryEventListener, the listener business logic
+	%END REM
+	Public Sub addAddToFolderListener(logic As BaseAddToFolderLogic)
+		If Not Me.addToFolderListeners.containsKey("QueryAddToFolder") Then
+			Dim listener As New BaseAddToFolderListener()
+			Call Me.addToFolderListeners.putValue("QueryAddToFolder", listener)
+			Call listener.initialize(Me.uiView, "QueryAddToFolder")
+		End If
+		
+		Call Me.addToFolderListeners.getValue("QueryInViewEdit").addLogic(logic)
+	End Sub
+End Class
+
+
+%REM
+	Class BaseQueryEventListener
+	Description: Comments for Class
+%END REM
+Class BaseQueryEventListener As BaseClass
+	Private logic As ArrayList
+	
+	%REM
+		Sub New
+		Description: Constructor
+	%END REM
+	Public Sub New
+		Set Me.logic = New ArrayList()
+	End Sub
+	
+	%REM
+		Sub initialize
+		@param source as NotesUIDocument, the current front end document
+	%END REM
+	Public Sub initialize(Source As NotesUIView, EventType As String)
+		
+		Select Case EventType
+			Case "QueryOpenDocument"
+				On Event QueryOpenDocument From Source Call listen
+			Case "QueryRecalc"
+				On Event QueryRecalc From Source Call listen
+			Case "QueryPaste"
+				On Event QueryPaste From Source Call listen
+			Case "QueryDragDrop"
+				On Event QueryDragDrop From Source Call listen
+			Case "QueryClose"
+				On Event QueryClose From Source Call listen
+			Case "QueryEntryResize"
+				On Event QueryEntryResize From Source Call listen
+			Case Else
+				Call Client_RaiseError("The handed in event is not a known 'Query' Event for a Document.")
+		End Select
+	End Sub
+	
+	%REM
+		Sub addLogic
+		Description: Comments for Sub
+	%END REM
+	Public Sub addLogic(logic As BaseQueryEventLogic)
+		Call Me.logic.addObject(logic)
+	End Sub
+	
+	%REM
+		Sub listen
+		Description: The method stub for the listener
+	%END REM
+	Public Sub listen(Source As NotesUIView, Continue As Variant)
+		ForAll singleLogic In Me.logic.toArray()
+			Call singleLogic.run(Source, Continue)
+		End ForAll
+	End Sub
+End Class
+
+
+
+
+%REM
+	Class BasePostEventListener
+	Description: Comments for Class
+%END REM
+Class BasePostEventListener As BaseClass
+	Private logic As ArrayList
+	
+	%REM
+		Sub New
+		Description: Constructor
+	%END REM
+	Public Sub New
+		Set Me.logic = New ArrayList()
+	End Sub
+	
+	%REM
+		Sub initialize
+		@param source as NotesUIDocument, the current front end document
+		@param EventType as String, the type of event on the front end document
+	%END REM
+	Public Sub initialize(Source As NotesUIView, EventType As String)
+		
+		Select Case EventType
+			Case "PostOpen"
+				On Event PostOpen From Source Call listen
+			Case "RegionDoubleClick"
+				On Event RegionDoubleClick From Source Call listen
+			Case "PostPaste"
+				On Event PostPaste From Source Call listen
+			Case "PostDragDrop"
+				On Event PostDragDrop From Source Call listen
+			Case "PostEntryResize"
+				On Event PostEntryResize From Source Call listen
+			Case "OnSelect"
+				On Event OnSelect From Source Call listen
+			Case Else
+				Call Client_RaiseError("The handed in event is not a known 'Post' Event for a View.")
+		End Select
+	End Sub
+	
+	%REM
+		Sub addLogic
+		Description: Comments for Sub
+	%END REM
+	Public Sub addLogic(logic As BasePostEventLogic)
+		Call Me.logic.addObject(logic)
+	End Sub
+	
+	%REM
+		Sub listen
+		Description: The method stub for the listener
+	%END REM
+	Public Sub listen(Source As NotesUIView)
+		ForAll singleLogic In Me.logic.toArray()
+			Call singleLogic.run(Source)
+		End ForAll
+	End Sub
+End Class
+%REM
+	Class BaseInViewEditListener
+	Description: Comments for Class
+%END REM
+Class BaseInViewEditListener As BaseClass
+	Private logic As ArrayList
+	
+	%REM
+		Sub New
+		Description: Constructor
+	%END REM
+	Public Sub New
+		Set Me.logic = New ArrayList()
+	End Sub
+	
+	%REM
+		Sub initialize
+		@param source as NotesUIDocument, the current front end document
+	%END REM
+	Public Sub initialize(Source As NotesUIView, EventType As String)
+		
+		Select Case EventType
+			Case "InViewEdit"
+				On Event InViewEdit From Source Call listen
+			Case Else
+				Call Client_RaiseError("The handed in event is not a known 'Query' Event for a Document.")
+		End Select
+	End Sub
+	
+	%REM
+		Sub addLogic
+		Description: Comments for Sub
+	%END REM
+	Public Sub addLogic(logic As BaseInViewEditLogic)
+		Call Me.logic.addObject(logic)
+	End Sub
+	
+	%REM
+		Sub listen
+		Description: The method stub for the listener
+	%END REM
+	Public Sub listen(Source As NotesUIView, RequestType As Integer, ColProgName As Variant, ColumnValue As Variant, Continue As Variant)
+		ForAll singleLogic In Me.logic.toArray()
+			Call singleLogic.run(Source, RequestType, ColProgName, ColumnValue, Continue)
+		End ForAll
+	End Sub
+End Class
+
+%REM
+	Class BaseAddToFolderListener
+	Description: Comments for Class
+%END REM
+Class BaseAddToFolderListener As BaseClass
+	Private logic As ArrayList
+	
+	%REM
+		Sub New
+		Description: Constructor
+	%END REM
+	Public Sub New
+		Set Me.logic = New ArrayList()
+	End Sub
+	
+	%REM
+		Sub initialize
+		@param source as NotesUIDocument, the current front end document
+		@param EventType as String, the type of event on the front end document
+	%END REM
+	Public Sub initialize(Source As NotesUIView, EventType As String)
+		
+		Select Case EventType
+			Case "QueryAddToFolder"
+				On Event QueryAddToFolder From Source Call listen
+			Case Else
+				Call Client_RaiseError("The handed in event is not a known 'AddToFolder' Event for a View.")
+		End Select
+	End Sub
+	
+	%REM
+		Sub addLogic
+		Description: Comments for Sub
+	%END REM
+	Public Sub addLogic(logic As BaseAddToFolderLogic)
+		Call Me.logic.addObject(logic)
+	End Sub
+	
+	%REM
+		Sub listen
+		Description: The method stub for the listener
+	%END REM
+	Public Sub listen(Source As NotesUIView, Target As Variant, Continue As Variant)
+		ForAll singleLogic In Me.logic.toArray()
+			Call singleLogic.run(Source, Target, Continue)
+		End ForAll
+	End Sub
+End Class
+%REM
+	Class BaseDocumentEventBinding
+	Description: Comments for Class
+%END REM
+Class BaseViewEventBinding As BaseClass
+	Private viewController As BaseViewController
+	
+	%REM
+		Sub init
+		Description: Comments for Sub
+	%END REM
+	Public Sub initialize(Source As  NotesUIView, Continue As Variant)
+		
+	End Sub
+	
+	%REM
+		Sub initController
+		Description: Call this method from the innitialize method in the EventBinding
+		@param Source as NotesUIDocument
+		@param Mode as Integer, whether the document is in edit mode or not
+		@param IsNewDoc as Variant, true if the document is new
+		@param Continue as Variant, False will stop further processing
+	%END REM
+	Public Sub initController(Source As  NotesUIView, Continue As Variant)
+		Set Me.viewController = New BaseViewController(Source, Continue)
+	End Sub
+	
+	%REM
+		Function getDocumentController
+		@return The document controller in this event binding
+	%END REM
+	Public Function getViewController() As BaseViewController
+		Set Me.getViewController = Me.viewController
+	End Function
+End Class

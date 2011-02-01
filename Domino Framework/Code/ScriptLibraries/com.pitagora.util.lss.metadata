@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?><note class="filter" maintenanceversion="3.0" replicaid="C1257767004FA71B" version="8.5" xmlns="http://www.lotus.com/dxl">
+<noteinfo noteid="3be" sequence="2" unid="A132E71FE9B02B43C12578250035BB46">
+<created><datetime>20110127T104653,50+01</datetime></created>
+<modified><datetime>20110127T104708,18+01</datetime></modified>
+<revised><datetime>20110127T104708,16+01</datetime></revised>
+<lastaccessed><datetime>20110127T104708,16+01</datetime></lastaccessed>
+<addedtofile><datetime>20110127T104655,29+01</datetime></addedtofile></noteinfo>
+<updatedby><name>CN=Gernot Hummer/O=Pitagora</name><name>CN=Sabine Oberleiter/O=Pitagora</name><name>CN=Gernot Hummer/O=Pitagora</name><name>CN=Josef Prantauer/O=Pitagora</name><name>CN=Gernot Hummer/O=Pitagora</name><name>CN=Josef Prantauer/O=Pitagora</name><name>CN=Domino03/O=Tyrolean Jet Services</name><name>CN=Lotus Admin/O=Tyrolean Jet Services</name><name>CN=Domino03/O=Tyrolean Jet Services</name><name>CN=ATPISLDDEV1/O=DEV</name><name>CN=Josef Prantauer/O=Pitagora</name><name>CN=ATPISLDDEV1/O=DEV</name><name>CN=Josef Prantauer/O=Pitagora</name><name>CN=Clemens Kunwald/O=Pitagora</name><name>CN=Gernot Hummer/O=Pitagora</name><name>CN=Josef Prantauer/O=Pitagora</name><name>CN=Gernot Hummer/O=Pitagora</name><name>CN=Josef Prantauer/O=Pitagora</name><name>CN=Gernot Hummer/O=Pitagora</name><name>CN=Josef Prantauer/O=Pitagora</name><name>CN=Gernot Hummer/O=Pitagora</name></updatedby>
+<wassignedby><name>CN=Gernot Hummer/O=Pitagora</name></wassignedby>
+<item name="$TITLE" sign="true"><text>com.pitagora.util</text></item>
+<item name="$PublicAccess" sign="true"><text>1</text></item>
+<item name="$Flags"><text>s34Q</text></item>
+<item name="$POID"><datetime>20101109T100830,87+01</datetime></item>
+<item name="$Comment"><text>UTIL: Advanced functionality: ArrayList, HashMap, Math, Server, System</text></item>
+
+</note>

@@ -1,0 +1,98 @@
+'++LotusScript Development Environment:2:5:(Options):0:74
+%REM
+	Library com.pitagora.data.connectionfactory
+	Created Jul 15, 2010 by Gernot Hummer/Pitagora
+	Description: Comments for Library
+%END REM
+Option Public
+Option Declare
+Use "com.pitagora.data.csv"
+Use "com.pitagora.data.notes"
+
+'++LotusScript Development Environment:2:5:(Forward):0:1
+Declare Class ConnectionFactory As BaseClass
+
+'++LotusScript Development Environment:2:5:(Declarations):0:10
+'Connection configuration
+Const DOCTYPE_ITEM = "DocType"
+Const DOCTYPE_NEEDED = "Connection"
+Const CONNECTION_NAME_ITEM = "ConnectionName"
+Const CONNECTION_TYPE_ITEM = "ConnectionType"
+
+'Connection types
+Const CONNECTION_NOTES = "NOTES"
+Const CONNECTION_CSV = "CSV"
+
+'Error Handling
+Const ERROR_CONNECTION_CONFIG = "801|Could not load connection configuration."
+%REM
+	Class ConnectionFactory
+	Description: Comments for Class
+%END REM
+Class ConnectionFactory As BaseClass
+	
+	%REM
+		Function createConnection
+		@param doc as NotesDocument, the base config document for the connection
+		@return <code>DataConnection</code> in a <code>Variant</code>, the produced connection
+	%END REM
+	Public Function createConnection(doc As NotesDocument, lCol As LogEntryCollection) As Variant
+		Dim bError As BaseError
+		
+		If doc.HasItem(DOCTYPE_ITEM) Then
+			If doc.GetItemValue(DOCTYPE_ITEM)(0) = DOCTYPE_NEEDED Then
+				Select Case doc.GetItemValue(CONNECTION_TYPE_ITEM)(0)
+					'Notes Connection
+				Case CONNECTION_NOTES
+					Set Me.createConnection = New NotesConnection(doc.GetItemValue(CONNECTION_NAME_ITEM)(0))
+					Call Me.createConnection.initialize(doc.GetItemValue("Server")(0), doc.GetItemValue("DbFilePath")(0))
+					
+					'CSV Connection
+				Case CONNECTION_CSV
+					
+					Set Me.createConnection = New CSVConnection(doc.GetItemValue(CONNECTION_NAME_ITEM)(0))
+					Call Me.createConnection.initialize(doc.GetItemValue("FilePath")(0), "READ", ";", "")
+					
+					'Handling unknown Connections
+				Case Else
+					GoTo UNKNOWN_CONNECTION_ERROR	
+			End Select
+			Else
+				GoTo GENERAL_ERROR
+			End If
+		Else
+			GoTo GENERAL_ERROR
+		End If
+		
+		Exit Function
+		
+UNKNOWN_CONNECTION_ERROR:
+		Set Me.createConnection = New DataConnection("Error")
+		Set bError = New BaseError(ERROR_TITLE, ERROR_CONNECTION_CONFIG &_
+			" Handed in document is an unkown connection type: " & doc.GetItemValue(CONNECTION_NAME_ITEM)(0))
+		Call me.createConnection.getErrorCollection().addError(bError)
+		
+		Call Me.addToLog(ERROR_TITLE & " " & CStr(bError.getErrorNum()) & ": " & bError.getErrorDesc(), lCol)
+		Exit Function
+		
+GENERAL_ERROR:
+		Set Me.createConnection = New DataConnection("Error")
+		Set bError = New BaseError(ERROR_TITLE, ERROR_CONNECTION_CONFIG &_
+			 " Handed in document is not a connection document: " & doc.UniversalID)
+		Call Me.createConnection.getErrorCollection().addError(bError)
+		
+		Call Me.addToLog(ERROR_TITLE & " " & CStr(bError.getErrorNum()) & ": " & bError.getErrorDesc(), lCol)
+		Exit Function
+	End Function
+	
+	%REM
+		Sub addToLog
+		Description: Comments for Sub
+	%END REM
+	Private Sub addToLog(msg As String, lCol As LogEntryCollection)
+		If Not lCol Is Nothing Then
+			Dim lEntry As New LogEntry(msg)
+			Call lCol.addEntry(lEntry)
+		End If
+	End Sub
+End Class
